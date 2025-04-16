@@ -1,0 +1,40 @@
+import path from 'path';
+import { promises as fs } from 'fs';
+import { createReadStream } from 'fs';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { getBlobInfoFromDB } from '@/lib/utils/db'; // 假设存在一个函数从数据库获取 blob 信息
+
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  const { hash } = req.query;
+  if (typeof hash!== 'string') {
+    return res.status(400).json({ message: 'Invalid hash' });
+  }
+  const uploadDir = path.join(process.cwd(), 'upload');
+  const filePath = path.join(uploadDir, hash);
+
+  try {
+    await fs.access(filePath);
+    const stream = createReadStream(filePath);
+    stream.pipe(res);
+  } catch (error) {
+    const blobInfo = await getBlobInfoFromDB(hash);
+    if (blobInfo) {
+      const { blobId, range } = blobInfo;
+      const aggregatorUrl = process.env.AGGREGATOR_URL;
+      const url = `${aggregatorUrl}/v1/blobs/${encodeURIComponent(blobId)}`;
+      const headers = { range: `bytes=${range.start || ""}-${range.end || ""}` };
+      const data = await fetch(url,{
+          headers:headers
+        }
+      );
+      // 这里需要实现从 Walrus 下载图片的逻辑
+      // 例如使用 axios 等库发送请求
+      res.json({ message: 'Fetching from Walrus', url, headers });
+    } else {
+      res.status(404).json({ message: 'Image not found' });
+    }
+  }
+};
+
+export default handler;
+    

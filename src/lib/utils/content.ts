@@ -379,7 +379,7 @@ export function contentTypeToString(contentType: number): string {
 
 
 // 直接返回 ContentType，无法识别时返回 ContentType.Unknown
-function ContentTypeFromString(value: string): ContentType {
+export function getContentTypeByMimetype(value: string): ContentType {
     switch (value) {
         case "audio/aac":
             return ContentType.AudioAac;
@@ -551,7 +551,189 @@ function test(){
     test_type("d:/abc.zip");
 }
 
-test();
+/**
+ * 根据文件头识别图片格式并返回扩展名
+ * @param buffer - 图片文件的 Buffer 或 Uint8Array
+ * @returns 图片扩展名（如 'jpg'），未知格式返回 'bin'
+ */
+export function detectImageExtension(buffer: Buffer | Uint8Array): string {
+    const uint8Array = buffer instanceof Buffer ? new Uint8Array(buffer) : buffer;
+    const hexHeader = Array.from(uint8Array.slice(0, 16)) // 检查前16字节
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join(' ')
+      .toUpperCase();
+  
+    // 匹配常见图片格式的文件头
+    if (hexHeader.startsWith('FF D8 FF')) return 'jpg';
+    if (hexHeader.startsWith('89 50 4E 47 0D 0A 1A 0A')) return 'png';
+    if (hexHeader.startsWith('47 49 46 38')) return 'gif';
+    if (hexHeader.startsWith('52 49 46 46') && hexHeader.includes('57 45 42 50')) return 'webp';
+    if (hexHeader.startsWith('42 4D')) return 'bmp';
+    if (hexHeader.startsWith('49 49 2A 00') || hexHeader.startsWith('4D 4D 00 2A')) return 'tiff';
+    if (hexHeader.startsWith('00 00 01 00')) return 'ico';
+    if (hexHeader.includes('66 74 79 70 68 65 69 63')) return 'heic'; // HEIF/HEIC
+    if (hexHeader.includes('66 74 79 70 61 76 69 66')) return 'avif';
+    
+    // 如果是文本格式（如 SVG），检查前几个字符
+    const textDecoder = new TextDecoder('utf-8');
+    const textHeader = textDecoder.decode(uint8Array.slice(0, 100)); // 检查前100字节文本
+    if (textHeader.trim().startsWith('<svg') || textHeader.trim().startsWith('<?xml')) return 'svg';
+  
+    return 'bin'; // 未知格式
+  }
+
+
+  // 根据 ContentType 获取文件扩展名
+export function getExtTypeByContentType(contentType: ContentType): string  {
+    switch (contentType) {
+        case ContentType.AudioAac:
+            return "aac";
+        case ContentType.ApplicationXabiword:
+            return "abw";
+        case ContentType.ImageApng:
+            return "apng";
+        case ContentType.ApplicationXfreearc:
+            return "arc";
+        case ContentType.ImageAvif:
+            return "avif";
+        case ContentType.VideoXmsvideo:
+            return "avi";
+        case ContentType.ApplicationVndamazonebook:
+            return "azw";
+        case ContentType.ApplicationOctetstream:
+            return "bin";
+        case ContentType.ImageBmp:
+            return "bmp";
+        case ContentType.ApplicationXbzip:
+            return "bz";
+        case ContentType.ApplicationXbzip2:
+            return "bz2";
+        case ContentType.ApplicationXcdf:
+            return "cda";
+        case ContentType.ApplicationXcsh:
+            return "csh";
+        case ContentType.TextCss:
+            return "css";
+        case ContentType.TextCsv:
+            return "csv";
+        case ContentType.ApplicationMsword:
+            return "doc";
+        case ContentType.ApplicationVndopenxmlformatsofficedocumentwordprocessingmldocument:
+            return "docx";
+        case ContentType.ApplicationVndmsfontobject:
+            return "eot";
+        case ContentType.ApplicationEpubzip:
+            return "epub";
+        case ContentType.ApplicationGzip:
+            return "gz";
+        case ContentType.ImageGif:
+            return "gif";
+        case ContentType.TextHtml:
+            return "html";
+        case ContentType.ImageVndmicrosofticon:
+            return "ico";
+        case ContentType.TextCalendar:
+            return "ics";
+        case ContentType.ApplicationJavaarchive:
+            return "jar";
+        case ContentType.ImageJpeg:
+            return "jpg";
+        case ContentType.TextJavascript:
+            return "js";
+        case ContentType.ApplicationJson:
+            return "json";
+        case ContentType.ApplicationLdjson:
+            return "jsonld";
+        case ContentType.AudioMidi:
+            return "mid";
+        case ContentType.AudioMpeg:
+            return "mp3";
+        case ContentType.VideoMp4:
+            return "mp4";
+        case ContentType.VideoMpeg:
+            return "mpeg";
+        case ContentType.ApplicationVndappleinstallerxml:
+            return "mpkg";
+        case ContentType.ApplicationVndoasisopendocumentpresentation:
+            return "odp";
+        case ContentType.ApplicationVndoasisopendocumentspreadsheet:
+            return "ods";
+        case ContentType.ApplicationVndoasisopendocumenttext:
+            return "odt";
+        case ContentType.AudioOgg:
+            return "oga";
+        case ContentType.VideoOgg:
+            return "ogg";
+        case ContentType.ApplicationOgg:
+            return "ogx";
+        case ContentType.AudioOpus:
+            return "opus";
+        case ContentType.FontOtf:
+            return "otf";
+        case ContentType.ImagePng:
+            return "png";
+        case ContentType.ApplicationPdf:
+            return "pdf";
+        case ContentType.ApplicationXhttpdphp:
+            return "php";
+        case ContentType.ApplicationVndmspowerpoint:
+            return "ppt";
+        case ContentType.ApplicationVndopenxmlformatsofficedocumentpresentationmlpresentation:
+            return "pptx";
+        case ContentType.ApplicationVndrar:
+            return "rar";
+        case ContentType.ApplicationRtf:
+            return "rtf";
+        case ContentType.ApplicationXsh:
+            return "sh";
+        case ContentType.ImageSvgxml:
+            return "svg";
+        case ContentType.ApplicationXtar:
+            return "tar";
+        case ContentType.ImageTiff:
+            return "tiff";
+        case ContentType.VideoMp2t:
+            return "ts";
+        case ContentType.FontTtf:
+            return "ttf";
+        case ContentType.TextPlain:
+            return "txt";
+        case ContentType.ApplicationVndvisio:
+            return "vsd";
+        case ContentType.AudioWav:
+            return "wav";
+        case ContentType.AudioWebm:
+            return "weba";
+        case ContentType.VideoWebm:
+            return "webm";
+        case ContentType.ImageWebp:
+            return "webp";
+        case ContentType.FontWoff:
+            return "woff";
+        case ContentType.FontWoff2:
+            return "woff2";
+        case ContentType.ApplicationXhtmlxml:
+            return "xhtml";
+        case ContentType.ApplicationVndmsexcel:
+            return "xls";
+        case ContentType.ApplicationVndopenxmlformatsofficedocumentspreadsheetmlsheet:
+            return "xlsx";
+        case ContentType.ApplicationXml:
+            return "xml";
+        case ContentType.ApplicationVndmozillaxulxml:
+            return "xul";
+        case ContentType.ApplicationZip:
+            return "zip";
+        case ContentType.ApplicationX7zcompressed:
+            return "7z";
+        default:
+            return "bin";
+    }
+}
+
+
+
+//test();
 /**
  * unknown contenttype
  * HTTP/1.1 200 OK

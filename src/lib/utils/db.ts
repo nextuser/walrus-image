@@ -55,6 +55,17 @@ export async  function readBlob(blob : FileBlobInfo) : Promise<Buffer>{
 
 }
 
+
+export function getBlobRequestUrl(request : Request,blobInfo: FileBlobInfo| undefined):string{
+  
+  const protocol = request.headers.get('x-forwarded-proto') || 'http';
+  const host = request.headers.get('host') || '';
+  if(!blobInfo){
+    return `${protocol}://${host}/tar/not_found`
+  }
+  return  `${protocol}://${host}/tar/${blobInfo.blobId}/?start=${blobInfo.range.start}&end=${blobInfo.range.end}&contentType=${blobInfo.contentType}`
+}
+
 export function getBlobUrl(protocol:string,host:string,blobInfo: FileBlobInfo):string{
     return  `${protocol}://${host}/tar/${blobInfo.blobId}/?start=${blobInfo.range.start}&end=${blobInfo.range.end}&contentType=${blobInfo.contentType}`
 }

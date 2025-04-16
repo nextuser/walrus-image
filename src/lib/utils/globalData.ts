@@ -6,6 +6,7 @@ import { getBlobInfoFromDB } from './db';
 export interface GlobalData {
     lastUpdated: Date;
     blobMap : Map<string,FileBlobInfo>;
+    files : Array<string>;
   }
   
   // 初始化全局变量（仅在服务器端运行）
@@ -19,7 +20,16 @@ export interface GlobalData {
     global.globalData = {
       lastUpdated: new Date(0), // 初始化为很久以前
       blobMap : new Map<string,FileBlobInfo>(),
+      files : new Array<string>(),
     };
+  }
+
+  export function getFiles() :Array<string>{
+      return global.globalData.files;
+  }
+
+  export function addFile(file:string):number{
+     return global.globalData.files.push(file);
   }
 
   export function getBlobMap() : Map<string,FileBlobInfo>{

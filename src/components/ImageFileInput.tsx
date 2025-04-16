@@ -1,20 +1,18 @@
 import { stringify } from 'querystring';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose }
-   from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Copy, Trash2 } from "lucide-react";
 import { Button } from './ui/button';
 
-export default function ImageFileUpload(props:{fileUrl:string, setFileUrl: (url :string)=>void}) {
+export default function ImageFileInput(props:{fileUrl:string, setFileUrl: (url :string)=>void}) {
   const [inputType, setInputType] = useState('file');
-  const [file, setFile] = useState<File|null>(null);
+  const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState('');
   const [preview, setPreview] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   ///const [fileUrl ,setLogUrl] = useState('');
   const [isOpen,setIsOpen] = useState(false)
-  const [imageDataUrl,setImageDataUrl] = useState<string>("");
 
   const handleInputTypeChange = (type:'file'|'url') => {
     setInputType(type);
@@ -23,53 +21,35 @@ export default function ImageFileUpload(props:{fileUrl:string, setFileUrl: (url 
     setPreview('');
   };
 
-  // const handleFileChange = (event:any) => {
-  //   const selectedFile = event.target.files[0];
-  //   if (selectedFile) {
-  //     setFile(selectedFile);
-  //     setPreview(URL.createObjectURL(selectedFile));
-  //   }
-  // };
+  const handleFileChange = (event:any) => {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
+  };
 
   const handleUrlChange = (event:any) => {
     const url = event.target.value;
-    handlePreviewUrl(url);
     setImageUrl(url);
-    //setPreview(url);
+    setPreview(url);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-        setFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setImageDataUrl(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-    }
-};
-
-  async function uploadFile(imageData:string) :Promise<string | null>{
+  async function uploadFile(file :File|string) :Promise<string | null>{
     try {
         setUploading(true);
         const formData = new FormData();
-        formData.append('file', imageData);
-        const uploadUrl = '/api/uploadFile';
+        formData.append('file', file);
+        const uploadUrl = '/api/upload';
         console.log("uploadFile:",uploadUrl);
-        if(typeof file == 'string'){
-          console.log("upload url ",file);
-        }
-
         const response = await fetch(uploadUrl, {
           method: 'POST',
           body: formData,
         });
-
   
         if (!response.ok) {
-          console.log("upload failed ,!response.ok" ,response.ok,response.text());
-          throw new Error('upload failed,!response.ok');
+          console.log("upload failed " ,response.ok,response.text());
+          throw new Error('upload failed');
         }
   
         const result = await response.json();
@@ -77,73 +57,38 @@ export default function ImageFileUpload(props:{fileUrl:string, setFileUrl: (url 
         return result.url;
       } catch (err) {
         console.log("catch error : ",err);
-        setError(err instanceof Error ? err.message : 'upload failed,catch err');
+        setError(err instanceof Error ? err.message : 'upload failed');
       } finally {
         setUploading(false);
       }
       return null;
   }
 
-
-  const handlePreviewUrl = async (url :string) => {
-    try {
-
-        if(url.startsWith("data:")){
-          console.log("handlePreviewUrl setImageDataUrl");
-          setImageDataUrl(url);
-        } 
-        else{
-          console.log("handlePreviewUrl:prepare to fetch url ",url);
-          const response = await fetch(url);
-          const blob = await response.blob();
-          const reader = new FileReader();
-          reader.onloadend = () => {
-              setImageDataUrl(reader.result as string);
-          };
-          reader.readAsDataURL(blob);
-      }
-    } catch (error) {
-        console.error('Error fetching image:', error);
-    }
-};
-
-
-const handleUploadUrl = async () => {
-    if (imageDataUrl) {
-        try {
-            const response = await fetch('/api/uploadFile', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ imagecode: imageDataUrl }),
-            });
-            const result = await response.json();
-            console.log('Upload result:', result);
-        } catch (error) {
-            console.error('Error uploading image:', error);
-        }
-    }
-};
-
   const handleSubmit = async () => {
     let arg : File | string;
-
-    let url = (await uploadFile(imageDataUrl) ) || '';
+    if (inputType === 'file' && file) {
+      console.log('upload file name:', file);
+      arg = file;
+    } else if (inputType === 'url' && imageUrl) {
+      console.log('handle image url:', imageUrl);
+      arg = imageUrl;
+    } else {
+      alert('sect a local Image or input a image url');
+      return;
+    }
+    let url = (await uploadFile(arg) ) || '';
     props.setFileUrl(url);
     if(url){
       setFile(null);
       setImageUrl('');
-      setPreview('');
       setIsOpen(false)
-      setImageDataUrl('');
     }
 
   };
 
   return (
     <div className='wx-800'>
-
+    <input type="text" disabled={true} value={props.fileUrl}  className='w-full' /> 
     { error && <p>{error}</p>}
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
     <DialogTrigger onClick={() => setIsOpen(true)}>
@@ -199,17 +144,16 @@ const handleUploadUrl = async () => {
         </div>
       )}
 
-      {imageDataUrl && (
+      {preview && (
         <div className="mb-6">
-          <img src={imageDataUrl} alt="Preview" className="w-full rounded-lg" />
+          <img src={preview} alt="Preview" className="w-full rounded-lg" />
         </div>
       )}
 
       <Button
         onClick={handleSubmit}
-        disabled = {!imageDataUrl}
       >
-       {uploading ? 'Uploading...' : 'Upload'}
+         {uploading ? 'Uploading...' : 'Upload'}
       </Button>
         <DialogClose />
       </DialogContent>

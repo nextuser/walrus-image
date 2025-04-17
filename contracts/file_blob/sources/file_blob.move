@@ -17,7 +17,7 @@ public struct BlobInfo has store{
 }
 public struct Storage has key,store{
     id : UID,
-    fileInfoMap : LoopableMap<u256,FileInfo>,
+    file_info_map : LoopableMap<u256,FileInfo>,
     file_blobs : Table<u256 ,BlobInfo> 
 }
 
@@ -71,7 +71,7 @@ fun init(ctx : &mut TxContext){
 fun create_storage(ctx : &mut TxContext){
     let storage = Storage{
         id : object::new(ctx),
-        fileInfoMap: loopable_map::new(ctx),
+        file_info_map: loopable_map::new(ctx),
         file_blobs : table::new<u256 ,BlobInfo>(ctx) 
     };
 
@@ -111,8 +111,8 @@ public fun add_file(storage :&mut Storage,
 {
 
     if(profile.file_ids.contains(&file_id)){
-        if(storage.fileInfoMap.contains(file_id)){
-            let fileInfo = storage.fileInfoMap.borrow(file_id);
+        if(storage.file_info_map.contains(file_id)){
+            let fileInfo = storage.file_info_map.borrow(file_id);
             if(fileInfo.size == size && fileInfo.mime_type == mime_type){
                 // the file uploaded before
                 return ADD_FILE_SUCC_ADD_BEFORE
@@ -135,7 +135,7 @@ public fun add_file(storage :&mut Storage,
 
     profile.file_ids.push_back(file_id);
     
-    if(loopable_map::contains(&storage.fileInfoMap,file_id)){
+    if(loopable_map::contains(&storage.file_info_map,file_id)){
         abort ADD_FILE_ERROR_NEW_PROFILE_NO_INFO
     };
 
@@ -145,7 +145,8 @@ public fun add_file(storage :&mut Storage,
         size
     } ;
 
-    loopable_map::add(&mut storage.fileInfoMap,file_id,fi);
+    loopable_map::add(&mut storage.file_info_map,file_id,fi);
+    // 新增了文件才需要加blob
     emit(FileAdded{
         file_id,
         mime_type,
@@ -155,6 +156,10 @@ public fun add_file(storage :&mut Storage,
     ADD_FILE_SUCC_ADD_NEW
 }
 
+public fun is_blob_uploaded(storage : &Storage,file_id : u256) : bool{
+    return storage.file_blobs.contains(file_id)
+}
+
 const ERROR_ADD_BLOB_SHOULD_AFTER_ADD_FILE : u64 = 2;
 entry fun add_blob(storage :&mut Storage,
                 file_id : u256,
@@ -162,8 +167,14 @@ entry fun add_blob(storage :&mut Storage,
                 offset : u32,
                 ctx : & TxContext)
 {
-    assert!(storage.fileInfoMap.contains(file_id),ERROR_ADD_BLOB_SHOULD_AFTER_ADD_FILE);
-    let fileInfo = storage.fileInfoMap.borrow(file_id);
+    assert!(storage.file_info_map.contains(file_id),ERROR_ADD_BLOB_SHOULD_AFTER_ADD_FILE);
+    let fileInfo = storage.file_info_map.borrow(file_id);
+    //file reused
+    if(storage.file_blobs.contains(file_id)){
+        return
+    };
+
+
     let blob_info = BlobInfo{
         blob_id,
         offset

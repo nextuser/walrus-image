@@ -6,7 +6,7 @@ import * as fsp from 'fs/promises';
 import path from 'path';
 import tar from 'tar-stream';
 import { TAR_DIR } from './dirs';
-import {getFileContentType} from '@/lib/utils/content'
+import {getContentType} from '@/lib/utils/globalData'
 
 export function uploadTarToWalrus(tarFile :string) : string{
     let blobId :string =  generateId();
@@ -63,7 +63,7 @@ export function getBlobRequestUrl(request : Request,blobInfo: FileBlobInfo| unde
   if(!blobInfo){
     return `${protocol}://${host}/tar/not_found`
   }
-  return  `${protocol}://${host}/tar/${blobInfo.blobId}/?start=${blobInfo.range.start}&end=${blobInfo.range.end}&contentType=${blobInfo.contentType}`
+  return  getBlobUrl(protocol,host,blobInfo)
 }
 
 export function getBlobUrl(protocol:string,host:string,blobInfo: FileBlobInfo):string{
@@ -71,19 +71,20 @@ export function getBlobUrl(protocol:string,host:string,blobInfo: FileBlobInfo):s
 }
 
 export function saveBlobInfoToDB(
-  blobMap:Map<string,FileBlobInfo>,
-    file : string, 
+    blobMap:Map<string,FileBlobInfo>,
+    hash : string,
+    contentType:number, 
     blobId : string, 
     fileRange : FileRange) :FileBlobInfo
 {
-    let contentType = getFileContentType(file);
+    console.log(`saveBlobInfoToDB hash=${hash} blobId =${blobId} start=${fileRange.start}`);
     let bi :FileBlobInfo = {
         blobId:blobId,
         contentType,
         range : fileRange
     }
 
-    blobMap.set(file,bi);
+    blobMap.set(hash,bi);
 
     console.log('file blob info:' , bi);
     return bi;
@@ -118,7 +119,14 @@ function generateId(length: number = 16): string {
     return id;
   }
   
-
+// ${hash}.jpg   => ${hash}
+export function getHash(fileName : string){
+  let index = fileName.indexOf(".");
+  if(index == -1){
+    return fileName;
+  }
+  return fileName.substring(0, index);
+}
   //todo  这个用作参考，后面会删除
   // const { storeBlob ,aggregatorUrl} = useUploadBlob()
 

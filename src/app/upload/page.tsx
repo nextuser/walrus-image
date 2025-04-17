@@ -6,17 +6,17 @@ import { useState } from 'react';
 export default function UploadPage() {
     const [imageUrl ,setImageUrl ] = useState('');
     
-    return (<div>
-    
-    <ImageFileUpload fileUrl={imageUrl} setFileUrl = {setImageUrl}/>
+    return (
     <div>
-    {imageUrl && 
-    <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href={imageUrl}> {imageUrl}</Link>
-    }
-    </div>
-    <div>
-    <Link href="/image_list" className="text-blue-900 underline hover:no-underline visited:text-blue-300">Blob Images</Link>
-    </div>
+        <ImageFileUpload fileUrl={imageUrl} setFileUrl = {setImageUrl}/>
+        <div>
+        {imageUrl && 
+        <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href={imageUrl}> {imageUrl}</Link>
+        }
+        </div>
+        <div>
+        <Link href="/image_list" className="text-blue-900 underline hover:no-underline visited:text-blue-300">Blob Images</Link>
+        </div>
     </div>)
 
 }

@@ -1,12 +1,15 @@
 // lib/globalData.ts
 import processFiles from '@/lib/utils/task';
-import { FileBlobInfo } from './types';
+import { FileBlobInfo,FileInfo } from './types';
 import { getBlobInfoFromDB } from './db';
+import { ContentType } from './content';
+
+
 // 定义全局数据类型
 export interface GlobalData {
     lastUpdated: Date;
     blobMap : Map<string,FileBlobInfo>;
-    files : Array<string>;
+    fileMap : Map<string,FileInfo>;
   }
   
   // 初始化全局变量（仅在服务器端运行）
@@ -20,20 +23,34 @@ export interface GlobalData {
     global.globalData = {
       lastUpdated: new Date(0), // 初始化为很久以前
       blobMap : new Map<string,FileBlobInfo>(),
-      files : new Array<string>(),
+      fileMap : new Map<string,FileInfo>(),
     };
   }
 
-  export function getFiles() :Array<string>{
-      return global.globalData.files;
+  export function getFiles() :Array<FileInfo>{
+      return Array.from(global.globalData.fileMap.values());
   }
 
-  export function addFile(file:string):number{
-     return global.globalData.files.push(file);
+  export function addFile(file:FileInfo){
+      global.globalData.fileMap.set(file.hash,file);
+  }
+
+  export function hasFile(file:string) : boolean{
+    return global.globalData.fileMap.has(file) ;
   }
 
   export function getBlobMap() : Map<string,FileBlobInfo>{
         return global.globalData.blobMap;
+  }
+
+
+  export function getContentType(hash : string) : ContentType{
+    let fileInfo = global.globalData.fileMap.get(hash);
+    if(!fileInfo){
+      return ContentType.Unknown;
+    } else{
+      return fileInfo.content_type;
+    }
   }
   
   // 模拟数据采集

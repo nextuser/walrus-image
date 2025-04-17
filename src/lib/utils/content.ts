@@ -74,7 +74,7 @@ export enum ContentType {
 }
 
 // 根据文件扩展名获取ContentType
-export function getContentTypeByExtType(ext: string): ContentType  {
+export function getContentTypeByExtType(ext: string | undefined): ContentType  {
     switch (ext) {
         case "aac":
             return ContentType.AudioAac;
@@ -539,6 +539,8 @@ function getExtType(file : string){
 export function getFileContentType(fileName : string) :ContentType{
     return getContentTypeByExtType(getExtType(fileName));
 }
+
+
 
 function test_type(fname:string){
     const contentType = getFileContentType(fname);

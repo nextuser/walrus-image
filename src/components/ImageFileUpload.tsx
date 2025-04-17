@@ -63,6 +63,7 @@ export default function ImageFileUpload(props:{fileUrl:string, setFileUrl: (url 
 
         const response = await fetch(uploadUrl, {
           method: 'POST',
+          mode : 'no-cors',
           body: formData,
         });
 

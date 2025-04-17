@@ -2,17 +2,22 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { createWriteStream } from 'fs';
 import { execSync } from 'child_process';
-import { uploadTarToWalrus, saveBlobInfoToDB, getBlobUrl } from './db'; // 假设存在上传和保存信息的函数
+import { uploadTarToWalrus, saveBlobInfoToDB, getBlobUrl,getHash } from './db'; // 假设存在上传和保存信息的函数
 import tar from 'tar-stream';
 import { FileBlobInfo, FileRange } from './types';
 import { UPLOAD_DIR,CACHE_DIR,TAR_DIR } from './dirs';
 import { start } from 'repl';
 import { getBlobMap } from './globalData';
+import { getContentTypeByExtType } from './content';
 const SIZE_TOO_LARGE = 60 * 1024 * 1024;
 const SIZE_TO_TAR = 100  * 1024;
 
 function log(...args :any[] ){
   console.log(args);
+}
+
+function getExtName(fileName : string):string | undefined{
+   return fileName.split(".").pop();
 }
 async function processFiles() {
   const blobMap = getBlobMap();
@@ -87,7 +92,10 @@ async function processFiles() {
     
     for (const file of selectedFiles) {
       let range =  fileRanges[file];
-      let blobInfo = saveBlobInfoToDB(blobMap,file, blobId,range);
+      let hash = getHash(file);
+      let extName = getExtName(file)
+      let contentType = getContentTypeByExtType(extName);
+      let blobInfo = saveBlobInfoToDB(blobMap,hash,contentType, blobId,range);
       log('filename:',file);
       log(getBlobUrl("http","localhost:8080",blobInfo));
     }

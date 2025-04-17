@@ -46,9 +46,11 @@ export async function GET(request: NextRequest, context : Context ) {
     const start = searchParams.get('start');
     const end = searchParams.get('end');
     const contentType = Number(searchParams.get("contentType") );
+    console.log(`http tar:start=${start},end =${end} ,contentType=${contentType} blobId=${blobId}`);
     const mimeType = contentTypeToString(contentType);
     if(!start || !end){
-        return NextResponse.json({message:"invalid arg of start:${start},end =${end} "},{status:400});
+
+        return NextResponse.json({message:`invalid arg of start:${start},end =${end} ,contentType=${contentType}`},{status:400});
     }
     const startRange = parseInt(start, 10);
     const endRange = parseInt(end, 10);

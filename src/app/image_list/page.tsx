@@ -1,10 +1,11 @@
 import { getBlobMap } from "@/lib/utils/globalData"
 import { blob } from "stream/consumers";
-import {getBlobUrl} from "@/lib/utils/db"
-
+import {getBlobUrl } from "@/lib/utils/db"
+import { getExtTypeByContentType } from "@/lib/utils/content";
 import { headers } from "next/headers";
 import Link from 'next/link';
 import { getFiles } from "@/lib/utils/globalData";
+import { FileInfo } from "@/lib/utils/types";
 
 export default async  function Page() {
 
@@ -20,10 +21,12 @@ export default async  function Page() {
     return (
         <div>
             <ul>{ 
-                    files.map( (fileName)=>{
-                    return (<li key={fileName}>
+                    files.map( (fileInfo:FileInfo)=>{
+                    return (<li key={fileInfo.hash}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
-                        href={`${protocol}://${host}/images/${fileName}`} >{fileName}</Link>
+                        href={`${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`} >
+                            {fileInfo.hash}
+                        </Link>
                     </li>)
                     })
                 }

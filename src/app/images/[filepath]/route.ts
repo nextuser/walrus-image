@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { UPLOAD_DIR,getUploadUrl } from '@/lib/utils/dirs';
 import { getBlobInfo } from '@/lib/utils/globalData';
-import { getBlobRequestUrl } from '@/lib/utils/db';
+import { getBlobRequestUrl ,getHash } from '@/lib/utils/db';
 
 // 缓存文件存在性检查结果（可选）
 const fileExistenceCache = new Map<string, boolean>();
@@ -41,9 +41,11 @@ export async function GET(
   catch (uploadError) {
       
   } 
-
-  const blobInfo = getBlobInfo(filepath)
+  const hash = getHash(filepath);
+ 
+  const blobInfo = getBlobInfo(hash)
   const blobUrl = getBlobRequestUrl(request,blobInfo);
+  console.log("hash:",hash, "url", "blobUrl");
 
 
   return NextResponse.redirect(

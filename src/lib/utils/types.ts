@@ -4,7 +4,11 @@ export interface FileRange {
   start: number;
   end: number;
 }
-
+export interface FileInfo {
+  hash : string,
+  content_type : ContentType,
+  size : number
+}
 export interface FileBlobInfo{
     blobId : string;
     contentType : ContentType;

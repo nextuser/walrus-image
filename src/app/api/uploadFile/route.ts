@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { UPLOAD_DIR } from '@/lib/utils/dirs';
-import {getContentTypeByExtType,getContentTypeByMimetype,getExtTypeByContentType} from '@/lib/utils/content'
-import {getImageUrl} from '@/lib/utils'
-import { addFile } from '@/lib/utils/globalData';
+import {ContentType, getContentTypeByExtType,getContentTypeByMimetype,getExtTypeByContentType} from '@/lib/utils/content'
+import {getImageUrl,generateHash} from '@/lib/utils'
+import { addFile ,hasFile} from '@/lib/utils/globalData';
 async function downloadImage(imageUrl: string): Promise<Buffer> {
   console.log("downloadImage:",imageUrl);
   const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
@@ -23,8 +23,9 @@ export async function POST(request: Request) {
       if (!fileOrUrl) {
         return NextResponse.json({ message: 'Invalid arg of file' }, { status: 400 });
       }
-      let suffix :string|undefined;
+      let contentType : ContentType;
       let buffer : Buffer;
+      let suffix : string ;
       if (typeof fileOrUrl === 'string') {
         // console.log("download url:",fileOrUrl);
         // buffer = (await downloadImage(fileOrUrl));
@@ -42,21 +43,17 @@ export async function POST(request: Request) {
        
         // 将 base64 编码转换为二进制数据
         buffer = Buffer.from(base64Data, 'base64');
-        let ct = getContentTypeByMimetype(mimeType);
-        suffix = getExtTypeByContentType(ct);
+        contentType = getContentTypeByMimetype(mimeType);
+        suffix = getExtTypeByContentType(contentType);
          // suffix = detectImageExtension(buffer);
-          console.log("find file ext name",suffix);
       } else {
           buffer = Buffer.from(await fileOrUrl.arrayBuffer());
-          suffix = fileOrUrl.name.split('.').pop();
+          suffix = fileOrUrl.name.split('.').pop() || "bin";
+          contentType = getContentTypeByExtType(suffix);
       }
   
       if (!buffer) {
         return NextResponse.json({ message: '未找到文件' }, { status: 400 });
-      }
-  
-      if(!suffix){
-        suffix = "bin";
       }
 
       // 保存文件到本地（示例路径：public/uploads）
@@ -65,16 +62,27 @@ export async function POST(request: Request) {
         fs.mkdirSync(UPLOAD_DIR, { recursive: true });
       }
         
-  
-      const fileName = `image-${Date.now()}.${suffix}`; // 生成唯一文件名
-      
-      const filePath = path.join(UPLOAD_DIR, fileName);
-      fs.writeFileSync(filePath, buffer);
-      console.log("upload image file:", filePath);
-      addFile(fileName);
+      const hash = generateHash(buffer);
+      const fileName = `${hash}.${suffix}`; // 生成唯一文件名
+
+
+      if(!hasFile(hash)){
+        const filePath = path.join(UPLOAD_DIR, fileName);
+        fs.writeFileSync(filePath, buffer);
+        let fileInfo =  {
+          hash : hash,
+          content_type : contentType,
+          size : buffer.length
+        };
+        console.log("upload image file:", filePath);
+        console.log("add file hash , contentype, filename", hash,contentType,fileName);
+        addFile(fileInfo);
+      } else{
+        console.log("file uploaded,reuse it", fileName);
+      }
        
       // 返回文件 URL
-      const fileUrl = getImageUrl(request,fileName);
+      const fileUrl = getImageUrl(request,`${fileName}`);
      
       return NextResponse.json({ url: fileUrl }, { status: 200 });
     } catch (error) {

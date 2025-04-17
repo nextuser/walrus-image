@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "clean": "rm -rf public/uploads/*  && rm -rf tars/*",
     "lint": "next lint"
   },
   "dependencies": {

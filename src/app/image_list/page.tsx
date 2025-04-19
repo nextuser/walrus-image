@@ -1,6 +1,4 @@
-import { getBlobMap } from "@/lib/utils/globalData"
 import { blob } from "stream/consumers";
-import {getBlobUrl } from "@/lib/utils/db"
 import { getExtTypeByContentType } from "@/lib/utils/content";
 import { headers } from "next/headers";
 import Link from 'next/link';

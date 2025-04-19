@@ -3,13 +3,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import tar from 'tar-stream';
 import { getTarFile } from '@/lib/utils/dirs';
-import { saveBlobInfoToDB } from '@/lib/utils/db';
 import { createReadStream } from 'fs';
 import { Readable } from 'stream';
-import { contentTypeToString } from '@/lib/utils/content';
+import { getMimeTypeByContentType } from '@/lib/utils/content';
 type Context = {
     params: Promise<{
-      blobId: string;
+      tarfile: string;
     }>;
   };
 
@@ -41,13 +40,13 @@ async function readFileRange(
 // 假设 tar 包存储在本地的某个路径
 
 export async function GET(request: NextRequest, context : Context ) {
-    let blobId = (await context.params).blobId;
+    let blobId = (await context.params).tarfile;
     let searchParams = request.nextUrl.searchParams;
     const start = searchParams.get('start');
     const end = searchParams.get('end');
     const contentType = Number(searchParams.get("contentType") );
     console.log(`http tar:start=${start},end =${end} ,contentType=${contentType} blobId=${blobId}`);
-    const mimeType = contentTypeToString(contentType);
+    const mimeType = getMimeTypeByContentType(contentType);
     if(!start || !end){
 
         return NextResponse.json({message:`invalid arg of start:${start},end =${end} ,contentType=${contentType}`},{status:400});
@@ -74,18 +73,7 @@ export async function GET(request: NextRequest, context : Context ) {
                 'Content-Type': mimeType, // 根据实际图片类型修改
             },
         });
-        // let buffer = await readFileRange(tarPath,startRange,endRange);
-        // console.log(buffer);
 
-        // if(buffer){
-        //     return new NextResponse(buffer, {
-        //             headers: {
-        //                 'Content-Type': mimeType, // 根据实际图片类型修改
-        //             },
-        //         });
-        // } else{
-        //     return NextResponse.json({ message: 'read buffer failed' }, { status: 500 });
-        // }
     } catch (error) {
         console.error('Error reading tar file:', error);
         return NextResponse.json({ message: 'Error reading tar file' }, { status: 500 });

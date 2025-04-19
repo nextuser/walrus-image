@@ -1,14 +1,16 @@
-import { FileRange } from './types';
+import { FileRange, UploadStatus } from './types';
 import {SuiClient } from '@mysten/sui/client';
-import { FileBlobInfo } from './types';
+import { FileBlobInfo,UploadedBlobInfo } from './types';
 import fs from 'fs';
 import * as fsp from 'fs/promises';
 import path from 'path';
 import tar from 'tar-stream';
 import { TAR_DIR } from './dirs';
-import {getContentType} from '@/lib/utils/globalData'
+import {getContentType,registerFileBobInfo} from '@/lib/utils/globalData'
+import {uploadBlob,downloadBlob} from '@/lib/utils/blobUtil';
+import { log} from '@/lib/utils/logger'
 
-export function uploadTarToWalrus(tarFile :string) : string{
+export function moveToTarDir(tarFile :string) : string{
     let blobId :string =  generateId();
     let dest = path.join(TAR_DIR,blobId);
     //todo 没有上传，先将tar文件移动
@@ -35,64 +37,80 @@ async function moveFile(sourcePath: string, destinationPath: string): Promise<vo
   }
 }
 
-export function getBlobInfoFromDB(blobMap:Map<string,FileBlobInfo>,hash : string) 
-                                : FileBlobInfo | undefined{
-    return blobMap.get(hash)
+
+
+
+
+
+function getTarUrl(protocol:string,host:string,tarfile : string,contentType : number, range:FileRange){
+
+  return `${protocol}://${host}/tar/$tarfile}/?start=${range.start}&end=${range.end}&contentType=${contentType}`;
 }
-
-export async  function readBlob(blob : FileBlobInfo) : Promise<Buffer>{
-    const tarfile  = path.join(TAR_DIR, blob.blobId);
-    const fh =  await fsp.open(tarfile,'r');
-    const length = blob.range.end - blob.range.start ;
-    const buffer = Buffer.alloc(length);
-    const {bytesRead } =  await fh.read({
-        buffer,
-        offset : 0,
-        length,
-        position : blob.range.start, 
-    });
-    return  buffer;
-
+export function getBlobTarUrl(protocol:string,host:string,fb: FileBlobInfo):string{
+    if(!fb.status.uploaded) {
+       return getTarUrl( protocol,host,fb.status.tarfile,fb.contentType,fb.range)
+    }
+    const blobId = encodeURIComponent(fb.status.uploadInfo.blobId);
+    return  `${protocol}://${host}/blobs?blobId=${blobId}&start=${fb.range.start}&end=${fb.range.end}&contentType=${fb.contentType}`
 }
 
 
-export function getBlobRequestUrl(request : Request,blobInfo: FileBlobInfo| undefined):string{
+export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo| undefined):string{
   
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
   const host = request.headers.get('host') || '';
   if(!blobInfo){
     return `${protocol}://${host}/tar/not_found`
   }
-  return  getBlobUrl(protocol,host,blobInfo)
+  return  getBlobTarUrl(protocol,host,blobInfo)
 }
+export async function saveBlob(tarfile :string) : Promise<UploadStatus | null> {
+    const filePath = path.join(process.cwd(),"tars", tarfile);
+    return fsp.readFile(filePath).then( (buffer:Buffer)=>{
 
-export function getBlobUrl(protocol:string,host:string,blobInfo: FileBlobInfo):string{
-    return  `${protocol}://${host}/tar/${blobInfo.blobId}/?start=${blobInfo.range.start}&end=${blobInfo.range.end}&contentType=${blobInfo.contentType}`
+      return uploadBlob(buffer).then((blobInfo : UploadedBlobInfo)=>{
+        
+        let status :UploadStatus = {
+          uploaded : true,
+          uploadInfo : blobInfo
+
+        }
+        log("saveBlob" ,tarfile,"status:",status);
+        return status
+      }).catch((reason :any)=>{
+        log("saveBlob:upload fail reason:",reason);
+        let status :UploadStatus = {
+          tarfile,
+          uploaded:false
+        }
+        return status;
+      });
+  }).catch( (reason)=>{
+     console.log(`read tarfile[${filePath}] fail `,reason );
+     return null;
+  });
 }
-
-export function saveBlobInfoToDB(
-    blobMap:Map<string,FileBlobInfo>,
+export  function recordFileBlobInfo (
     hash : string,
     contentType:number, 
-    blobId : string, 
-    fileRange : FileRange) :FileBlobInfo
+    fileRange : FileRange,
+    status : UploadStatus
+  ) 
 {
-    console.log(`saveBlobInfoToDB hash=${hash} blobId =${blobId} start=${fileRange.start}`);
-    let bi :FileBlobInfo = {
-        blobId:blobId,
-        contentType,
-        range : fileRange
-    }
-
-    blobMap.set(hash,bi);
-
-    console.log('file blob info:' , bi);
-    return bi;
+  let fb :FileBlobInfo = {
+    hash,
+    status,
+    contentType,
+    range : fileRange
+  }
+  console.log(`saveBlobInfoToDB hash=${hash} fb=${fb}`);
+  registerFileBobInfo(hash,fb);
 
 }
 
 
 import * as crypto from 'crypto'
+import { blob } from 'stream/consumers';
 function generateId(length: number = 16): string {
     // 浏览器和Node.js都支持的crypto API
     //const cryptoObj = window.crypto || (window as any).msCrypto; // 浏览器

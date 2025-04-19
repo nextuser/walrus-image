@@ -2,25 +2,23 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { createWriteStream } from 'fs';
 import { execSync } from 'child_process';
-import { uploadTarToWalrus, saveBlobInfoToDB, getBlobUrl,getHash } from './db'; // 假设存在上传和保存信息的函数
+import {saveBlob , recordFileBlobInfo, getHash, moveToTarDir } from './db'; // 假设存在上传和保存信息的函数
 import tar from 'tar-stream';
 import { FileBlobInfo, FileRange } from './types';
 import { UPLOAD_DIR,CACHE_DIR,TAR_DIR } from './dirs';
 import { start } from 'repl';
-import { getBlobMap } from './globalData';
 import { getContentTypeByExtType } from './content';
+import {log} from '@/lib/utils/logger' 
+
 const SIZE_TOO_LARGE = 60 * 1024 * 1024;
 const SIZE_TO_TAR = 100  * 1024;
 
-function log(...args :any[] ){
-  console.log(args);
-}
+
 
 function getExtName(fileName : string):string | undefined{
    return fileName.split(".").pop();
 }
 async function processFiles() {
-  const blobMap = getBlobMap();
   log("processFiles begin");
   const files = await fs.readdir(UPLOAD_DIR);
   let totalSize = 0;
@@ -88,16 +86,18 @@ async function processFiles() {
       tarStream.on('error', reject);
     });
 
-    const blobId = await uploadTarToWalrus(tarPath);
-    
+    const tarFile = await moveToTarDir(tarPath);
+    const status = await saveBlob(tarFile);
+    if(status == null){
+      console.error("can not read tarfile ${tarFile}")
+      return;
+    }
     for (const file of selectedFiles) {
       let range =  fileRanges[file];
       let hash = getHash(file);
       let extName = getExtName(file)
       let contentType = getContentTypeByExtType(extName);
-      let blobInfo = saveBlobInfoToDB(blobMap,hash,contentType, blobId,range);
-      log('filename:',file);
-      log(getBlobUrl("http","localhost:8080",blobInfo));
+      recordFileBlobInfo(hash,contentType, range,status);
     }
 
     // 删除 cache 目录中的文件和 upload 目录中同名的文件

@@ -1,7 +1,6 @@
 // lib/globalData.ts
 import processFiles from '@/lib/utils/task';
 import { FileBlobInfo,FileInfo } from './types';
-import { getBlobInfoFromDB } from './db';
 import { ContentType } from './content';
 
 
@@ -39,8 +38,9 @@ export interface GlobalData {
     return global.globalData.fileMap.has(file) ;
   }
 
-  export function getBlobMap() : Map<string,FileBlobInfo>{
-        return global.globalData.blobMap;
+
+  export function registerFileBobInfo(hash : string,fbi : FileBlobInfo){
+      global.globalData.blobMap.set(hash,fbi);
   }
 
 
@@ -74,9 +74,9 @@ export interface GlobalData {
   }
 
 
-export function getBlobInfo(hash : string) 
+export function getFileBlob(hash : string) 
                                 : FileBlobInfo | undefined{
-    return getBlobInfoFromDB(global.globalData.blobMap,hash);
+    return global.globalData.blobMap.get(hash);
 }
 
   

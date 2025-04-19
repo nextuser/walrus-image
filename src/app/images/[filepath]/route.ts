@@ -1,14 +1,11 @@
-import {getBlobInfoFromDB , readBlob} from '@/lib/utils/db'
 import { NextResponse } from 'next/server';
 import { stat } from 'fs/promises';
 import fs from 'fs';
 import path from 'path';
 import { UPLOAD_DIR,getUploadUrl } from '@/lib/utils/dirs';
-import { getBlobInfo } from '@/lib/utils/globalData';
-import { getBlobRequestUrl ,getHash } from '@/lib/utils/db';
+import { getFileBlob } from '@/lib/utils/globalData';
+import { getBlobOrTarUrl ,getHash } from '@/lib/utils/db';
 
-// 缓存文件存在性检查结果（可选）
-const fileExistenceCache = new Map<string, boolean>();
 type Context = {
   params: Promise<{
     filepath: string;
@@ -43,8 +40,8 @@ export async function GET(
   } 
   const hash = getHash(filepath);
  
-  const blobInfo = getBlobInfo(hash)
-  const blobUrl = getBlobRequestUrl(request,blobInfo);
+  const blobInfo = getFileBlob(hash)
+  const blobUrl = getBlobOrTarUrl(request,blobInfo);
   console.log("hash:",hash, "url", "blobUrl");
 
 

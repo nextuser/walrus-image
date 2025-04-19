@@ -9,8 +9,28 @@ export interface FileInfo {
   content_type : ContentType,
   size : number
 }
+
+
+export interface UploadedBlobInfo {
+  blobId: string;
+  endEpoch: number;
+  suiRef: string;
+  status: string;
+}
+
+export   type UploadStatus =   {
+  tarfile : string,
+  uploaded : false,
+} | {
+  uploaded : true,
+  uploadInfo : UploadedBlobInfo,
+};
+
 export interface FileBlobInfo{
-    blobId : string;
+    hash : string;
+    status :UploadStatus;
     contentType : ContentType;
     range : FileRange;
 }
+
+

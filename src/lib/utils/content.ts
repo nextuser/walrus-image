@@ -228,7 +228,7 @@ export function getContentTypeByExtType(ext: string | undefined): ContentType  {
 }
 
 // 将ContentType转换为字符串表示
-export function contentTypeToString(contentType: number): string {
+export function getMimeTypeByContentType(contentType: number): string {
     switch (contentType) {
         case ContentType.AudioAac:
             return "audio/aac";
@@ -544,7 +544,7 @@ export function getFileContentType(fileName : string) :ContentType{
 
 function test_type(fname:string){
     const contentType = getFileContentType(fname);
-    const contentString = contentTypeToString(contentType);
+    const contentString = getMimeTypeByContentType(contentType);
     console.log(fname,contentType,contentString);
 }
 function test(){

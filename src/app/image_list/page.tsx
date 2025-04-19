@@ -4,6 +4,19 @@ import { headers } from "next/headers";
 import Link from 'next/link';
 import { getFiles } from "@/lib/utils/globalData";
 import { FileInfo } from "@/lib/utils/types";
+import { getFileBlob } from "@/lib/utils/globalData";
+function getType(fileInfo:FileInfo){
+    
+    let status = getFileBlob(fileInfo.hash);
+    if(status == null){
+        return getExtTypeByContentType(fileInfo.content_type);
+    }
+    if(status.status.uploaded){
+        return 'blob'
+    } else{
+        return 'tar'
+    }
+}
 
 export default async  function Page() {
 
@@ -20,11 +33,12 @@ export default async  function Page() {
         <div>
             <ul>{ 
                     files.map( (fileInfo:FileInfo)=>{
+                    const type = getType(fileInfo)
                     return (<li key={fileInfo.hash}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
                         href={`${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`} >
                             {fileInfo.hash}
-                        </Link>
+                        </Link> <label>{type}</label>
                     </li>)
                     })
                 }

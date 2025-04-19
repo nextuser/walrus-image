@@ -5,6 +5,7 @@ import path from 'path';
 import { UPLOAD_DIR,getUploadUrl } from '@/lib/utils/dirs';
 import { getFileBlob } from '@/lib/utils/globalData';
 import { getBlobOrTarUrl ,getHash } from '@/lib/utils/db';
+import { log } from 'console';
 
 type Context = {
   params: Promise<{
@@ -20,27 +21,32 @@ export async function GET(
   const { filepath } = await context.params;
   const decodedFilePath = decodeURIComponent(filepath);
   const encodeFileURI = encodeURIComponent(filepath);
-  // 1. 检查 /public/uploads
-  const uploadsPath = path.join(UPLOAD_DIR, decodedFilePath);
-    
-  try {
 
+    
+  
+  const hash = getHash(filepath);
+  const blobInfo = getFileBlob(hash)
+  
+  if(blobInfo == null){
+      // 1. 检查 /public/uploads
+    const uploadsPath = path.join(UPLOAD_DIR, decodedFilePath);
+  
     if(fs.existsSync(uploadsPath)){
-      
-        return NextResponse.redirect(
+
+      return NextResponse.redirect(
           new URL(getUploadUrl(encodeFileURI), request.url),
           { 
             status: 302,
-          }
+          });
+    } 
+    else{
+        return NextResponse.json(
+          {message:`not found file ${uploadsPath}`},
+          { status: 400 }
         );
-    }
-  } 
-  catch (uploadError) {
-      
-  } 
-  const hash = getHash(filepath);
- 
-  const blobInfo = getFileBlob(hash)
+   }
+  }
+  
   const blobUrl = getBlobOrTarUrl(request,blobInfo);
   console.log("hash:",hash, "url", "blobUrl");
 

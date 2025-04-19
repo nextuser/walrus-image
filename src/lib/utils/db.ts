@@ -9,6 +9,7 @@ import { TAR_DIR } from './dirs';
 import {getContentType,registerFileBobInfo} from '@/lib/utils/globalData'
 import {uploadBlob,downloadBlob} from '@/lib/utils/blobUtil';
 import { log} from '@/lib/utils/logger'
+import { registerToDelete} from '@/lib/utils/globalData'
 
 export function moveToTarDir(tarFile :string) : string{
     let blobId :string =  generateId();
@@ -55,7 +56,7 @@ export function getBlobTarUrl(protocol:string,host:string,fb: FileBlobInfo):stri
 }
 
 
-export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo| undefined):string{
+export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo):string{
   
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
   const host = request.headers.get('host') || '';
@@ -64,8 +65,12 @@ export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo| undefi
   }
   return  getBlobTarUrl(protocol,host,blobInfo)
 }
+
+export function getTarPath(tarfile : string){
+  return path.join(process.cwd(),"tars", tarfile);
+}
 export async function saveBlob(tarfile :string) : Promise<UploadStatus | null> {
-    const filePath = path.join(process.cwd(),"tars", tarfile);
+    const filePath = getTarPath(tarfile);
     return fsp.readFile(filePath).then( (buffer:Buffer)=>{
 
       return uploadBlob(buffer).then((blobInfo : UploadedBlobInfo)=>{

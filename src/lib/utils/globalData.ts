@@ -4,6 +4,7 @@ import { FileBlobInfo,FileInfo } from './types';
 import { ContentType } from './content';
 import { fileURLToPath } from 'url';
 import { fstat ,promises as fsp} from 'fs';
+import { getAddFileTx } from './suiUtil';
 
 
 // 定义全局数据类型
@@ -40,6 +41,10 @@ export interface GlobalData {
 
   export function hasFile(file:string) : boolean{
     return global.globalData.fileMap.has(file) ;
+  }
+
+  export function getFileInfo(hash:string) :FileInfo | undefined{
+     return global.globalData.fileMap.get(hash)
   }
 
 

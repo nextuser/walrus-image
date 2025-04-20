@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "clean": "rm -rf public/uploads/*  && rm -rf tars/*",
-    "lint": "next lint"
+    "lint": "next lint",
+    "parse": "cd src/config && bash ./parse_out.sh"
   },
   "dependencies": {
     "@mysten/bcs": "^1.6.0",
@@ -17,9 +18,12 @@
     "@mysten/walrus-wasm": "^0.0.6",
     "@radix-ui/react-dialog": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.0",
+    "@tanstack/react-query": "^5.74.4",
     "axios": "^1.8.4",
+    "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.5.0",
     "lucide-react": "^0.488.0",
     "next": "15.3.0",
     "react": "^19.0.0",

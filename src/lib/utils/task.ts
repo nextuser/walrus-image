@@ -93,13 +93,6 @@ async function processFiles() {
     const tarFile = await moveToTarDir(tarPath);
     const now = new Date().getTime();
     
-    // 延迟删除 cache 目录中的文件和 upload 目录中同名的文件
-    for (const file of selectedFiles) {
-      const cacheFilePath = path.join(CACHE_DIR, file);
-      const uploadFilePath = path.join(UPLOAD_DIR, file);
-      registerToDelete(cacheFilePath,now);
-      registerToDelete(uploadFilePath,now);
-    }
     
     const status = await saveBlob(tarFile);
 
@@ -119,7 +112,16 @@ async function processFiles() {
       let contentType = getContentTypeByExtType(extName);
       recordFileBlobInfo(hash,contentType, range,status);
     }
-
+    //todo  uploadblob 失败，文件的tar包可能需要删除 而不是删除jpg， 下次重启需要重新upload
+    //todo 记录log文件，记录打包和上传记录
+    
+    // 延迟删除 cache 目录中的文件和 upload 目录中同名的文件
+    for (const file of selectedFiles) {
+      const cacheFilePath = path.join(CACHE_DIR, file);
+      const uploadFilePath = path.join(UPLOAD_DIR, file);
+      registerToDelete(cacheFilePath,now);
+      registerToDelete(uploadFilePath,now);
+    }   
 
     //await fs.rmdir(CACHE_DIR);
     deleteFiles(TIME_WAIT_SECONDS_TO_DELETE);

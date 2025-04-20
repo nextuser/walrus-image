@@ -5,7 +5,10 @@ import path from 'path';
 import { UPLOAD_DIR } from '@/lib/utils/dirs';
 import {ContentType, getContentTypeByExtType,getContentTypeByMimetype,getExtTypeByContentType} from '@/lib/utils/content'
 import {getImageUrl,generateHash} from '@/lib/utils'
-import { addFile ,hasFile} from '@/lib/utils/globalData';
+import { addFile ,getFileInfo,hasFile} from '@/lib/utils/globalData';
+import {getAddFileTx,getProfile} from '@/lib/utils/suiUtil'
+import { suiClient } from '@/contracts';
+import { FileInfo } from '@/lib/utils/types';
 async function downloadImage(imageUrl: string): Promise<Buffer> {
   console.log("downloadImage:",imageUrl);
   const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
@@ -14,6 +17,7 @@ async function downloadImage(imageUrl: string): Promise<Buffer> {
 
 
 export async function POST(request: Request) {
+
     console.log("upload/route.ts :post");
     try {
       
@@ -69,7 +73,7 @@ export async function POST(request: Request) {
       if(!hasFile(hash)){
         const filePath = path.join(UPLOAD_DIR, fileName);
         fs.writeFileSync(filePath, buffer);
-        let fileInfo =  {
+        let fileInfo : FileInfo =  {
           hash : hash,
           content_type : contentType,
           size : buffer.length
@@ -77,14 +81,16 @@ export async function POST(request: Request) {
         console.log("upload image file:", filePath);
         console.log("add file hash , contentype, filename", hash,contentType,fileName);
         addFile(fileInfo);
+
       } else{
         console.log("file uploaded,reuse it", fileName);
       }
+      const fileUrl = getImageUrl(request,`${fileName}`);
+      const fileInfo = getFileInfo(hash);
+      return NextResponse.json({ url: fileUrl,fileInfo : fileInfo }, { status: 200 });
        
       // 返回文件 URL
-      const fileUrl = getImageUrl(request,`${fileName}`);
-     
-      return NextResponse.json({ url: fileUrl }, { status: 200 });
+
     } catch (error) {
       console.error('上传失败:', error);
       return NextResponse.json({ message: '上传失败' }, { status: 500 });

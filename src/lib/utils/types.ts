@@ -13,9 +13,9 @@ export interface FileInfo {
 
 export interface UploadedBlobInfo {
   blobId: string;
-  endEpoch: number;
-  suiRef: string;
-  status: string;
+  endEpoch?: number;
+  suiRef?: string;
+  status?: string;
 }
 
 export   type UploadStatus =   {

@@ -5,31 +5,32 @@ import path from 'path';
 import { UPLOAD_DIR } from '@/lib/utils/dirs';
 import {ContentType, getContentTypeByExtType,getContentTypeByMimetype,getExtTypeByContentType} from '@/lib/utils/content'
 import {getImageUrl,generateHash} from '@/lib/utils'
-import { addFile ,getFileInfo,hasFile} from '@/lib/utils/globalData';
-import {getAddFileTx,getProfile} from '@/lib/utils/suiUtil'
-import { suiClient } from '@/contracts';
+import { addFile ,addFileId,getFileInfo,hasFile} from '@/lib/utils/globalData';
+import {getProfile} from '@/lib/utils/suiUtil'
+import { getServerSideSuiClient } from '@/lib/utils/tests/suiClient';
 import { FileInfo } from '@/lib/utils/types';
+import { startDataCollection } from '@/lib/utils/globalData';
 async function downloadImage(imageUrl: string): Promise<Buffer> {
   console.log("downloadImage:",imageUrl);
   const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
   return Buffer.from(response.data, 'binary');
 }
 
-
+const suiClient = getServerSideSuiClient();
 export async function POST(request: Request) {
-
+    startDataCollection();
     console.log("upload/route.ts :post");
     try {
       
       const formData = await request.formData();
       const fileOrUrl : File|string|null = formData.get('file') ;
+      const owner : File|string |null = formData.get('owner');
 
-      if (!fileOrUrl) {
-        return NextResponse.json({ message: 'Invalid arg of file' }, { status: 400 });
+      if (!fileOrUrl || typeof(owner) != 'string') {
+        return NextResponse.json({ message: 'Invalid arg : owner or file invalid' }, { status: 400 });
       }
       let contentType : ContentType;
       let buffer : Buffer;
-      let suffix : string ;
       if (typeof fileOrUrl === 'string') {
         // console.log("download url:",fileOrUrl);
         // buffer = (await downloadImage(fileOrUrl));
@@ -48,12 +49,11 @@ export async function POST(request: Request) {
         // 将 base64 编码转换为二进制数据
         buffer = Buffer.from(base64Data, 'base64');
         contentType = getContentTypeByMimetype(mimeType);
-        suffix = getExtTypeByContentType(contentType);
          // suffix = detectImageExtension(buffer);
       } else {
           buffer = Buffer.from(await fileOrUrl.arrayBuffer());
-          suffix = fileOrUrl.name.split('.').pop() || "bin";
-          contentType = getContentTypeByExtType(suffix);
+          let ext  = fileOrUrl.name.split('.').pop() || "bin";
+          contentType = getContentTypeByExtType(ext);
       }
   
       if (!buffer) {
@@ -65,11 +65,10 @@ export async function POST(request: Request) {
       if (!fs.existsSync(UPLOAD_DIR)) {
         fs.mkdirSync(UPLOAD_DIR, { recursive: true });
       }
-        
+       //从文件可能多个 对应到一个content,  一个content只会对应到一个ext,方便后面根据存储的contenttype来推断 ext
+      let ext = getExtTypeByContentType(contentType);
       const hash = generateHash(buffer);
-      const fileName = `${hash}.${suffix}`; // 生成唯一文件名
-
-
+      const fileName = `${hash}.${ext}`; // 生成唯一文件名
       if(!hasFile(hash)){
         const filePath = path.join(UPLOAD_DIR, fileName);
         fs.writeFileSync(filePath, buffer);
@@ -81,10 +80,13 @@ export async function POST(request: Request) {
         console.log("upload image file:", filePath);
         console.log("add file hash , contentype, filename", hash,contentType,fileName);
         addFile(fileInfo);
+        addFileId(owner,hash);        
 
       } else{
+        addFileId(owner,hash);
         console.log("file uploaded,reuse it", fileName);
       }
+      
       const fileUrl = getImageUrl(request,`${fileName}`);
       const fileInfo = getFileInfo(hash);
       return NextResponse.json({ url: fileUrl,fileInfo : fileInfo }, { status: 200 });

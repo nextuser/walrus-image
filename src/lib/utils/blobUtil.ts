@@ -7,17 +7,40 @@ export interface UploadBlobConfig {
     initialAggregatorUrl?: string;
     proxyUrl?: string;
 }
+/**
+ https://publisher.testnet.walrus.atalma.io
+https://publisher.walrus-01.tududes.com
+https://publisher.walrus-testnet.walrus.space
+https://publisher.walrus.banansen.dev
+https://sm1-walrus-testnet-publisher.stakesquid.com
+https://sui-walrus-testnet-publisher.bwarelabs.com
+https://suiftly-testnet-pub.mhax.io
+https://testnet-publisher-walrus.kiliglab.io
+https://testnet-publisher.walrus.graphyte.dev
+https://testnet.publisher.walrus.silentvalidator.com
+http://walrus-publisher-testnet.cetus.zone:9001
+http://walrus-publisher-testnet.haedal.xyz:9001
+http://walrus-publisher-testnet.suisec.tech:9001
+http://walrus-storage.testnet.nelrann.org:9001
+http://walrus-testnet.equinoxdao.xyz:9001
+http://walrus-testnet.suicore.com:9001
+http://walrus.testnet.pops.one:9001
+http://waltest.chainflow.io:9001
+ */
 
 export const DEFAULT_CONFIG: Required<UploadBlobConfig> = {
     initialEpochs: process.env.NEXT_PUBLIC_INITIAL_EPOCHS || '1',
     initialPublisherUrl: process.env.NEXT_PUBLIC_PUBLISHER_URL || 'https://publisher.walrus-testnet.walrus.space',
     initialAggregatorUrl: process.env.NEXT_PUBLIC_AGGREGATOR_URL || 'https://aggregator.walrus-testnet.walrus.space',
+    //initialPublisherUrl: process.env.NEXT_PUBLIC_PUBLISHER_URL || 'http://walrus-publisher-testnet.cetus.zone:9001',
+    //initialAggregatorUrl: process.env.NEXT_PUBLIC_AGGREGATOR_URL || 'https://walrus-aggregator-testnet.cetus.zone',
+    
     proxyUrl: process.env.NEXT_PUBLIC_PROXY_URL || ''
 };
 
 
 
-const MAX_EPOCHS=53;
+const MAX_EPOCHS=1;
 export async function uploadBlob(buffer: Buffer ) : Promise<UploadedBlobInfo>{
     try {
         const publisherUrl = DEFAULT_CONFIG.initialPublisherUrl;
@@ -31,6 +54,9 @@ export async function uploadBlob(buffer: Buffer ) : Promise<UploadedBlobInfo>{
 
         if (!response.ok) {
             log("storeBlob: fail to upload");
+            response.text().then((value)=>{
+                console.log("storeBlob error:",value);
+            });
             throw new Error('Something went wrong when storing the blob!');
         }
 

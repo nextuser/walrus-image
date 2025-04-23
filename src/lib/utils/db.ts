@@ -10,7 +10,7 @@ import {getContentType,registerFileBobInfo} from '@/lib/utils/globalData'
 import {uploadBlob,downloadBlob} from '@/lib/utils/blobUtil';
 import { log} from '@/lib/utils/logger'
 import { registerToDelete} from '@/lib/utils/globalData'
-
+import { getAddBlobTx } from './suiUtil';
 export function moveToTarDir(tarFile :string) : string{
     let blobId :string =  generateId();
     let dest = path.join(TAR_DIR,blobId);
@@ -100,7 +100,7 @@ export  function recordFileBlobInfo (
     contentType:number, 
     fileRange : FileRange,
     status : UploadStatus
-  ) 
+  )  :FileBlobInfo
 {
   let fb :FileBlobInfo = {
     hash,
@@ -108,9 +108,11 @@ export  function recordFileBlobInfo (
     contentType,
     range : fileRange
   }
-  console.log(`saveBlobInfoToDB hash=${hash} fb=${fb}`);
-  registerFileBobInfo(hash,fb);
+  //console.log(`saveBlobInfoToDB hash=${hash} fb=${fb}`);
 
+  registerFileBobInfo(hash,fb);
+  return fb;
+  
 }
 
 

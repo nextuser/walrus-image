@@ -3,9 +3,16 @@
 import Link from 'next/link';
 import ImageFileUpload from '@/components/ImageFileUpload';
 import { useState } from 'react';
+import { useCurrentAccount ,useCurrentWallet} from "@mysten/dapp-kit";
+
 export default function UploadPage() {
-    const [imageUrl ,setImageUrl ] = useState('');
     
+    const [imageUrl ,setImageUrl ] = useState('');
+    const acc = useCurrentAccount() ;
+    const wallet = useCurrentWallet();
+    if(!wallet || !wallet.isConnected ){
+        return (<div><h2>Connect Wallet first</h2></div>)
+    }
     return (
     <div>
         <ImageFileUpload fileUrl={imageUrl} setFileUrl = {setImageUrl}/>

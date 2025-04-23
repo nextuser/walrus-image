@@ -2,17 +2,19 @@
 import processFiles from '@/lib/utils/task';
 import { FileBlobInfo,FileInfo } from './types';
 import { ContentType } from './content';
-import { fileURLToPath } from 'url';
 import { fstat ,promises as fsp} from 'fs';
-import { getAddFileTx } from './suiUtil';
 
+type UserProfile ={
+   fileIds : string[];
+}
 
 // 定义全局数据类型
 export interface GlobalData {
     lastUpdated: Date;
     blobMap : Map<string,FileBlobInfo>;
     fileMap : Map<string,FileInfo>;
-    deleteFileTimeMap : Map<string,number>; //file=> time_ms
+    profileMap : Map<string,UserProfile>;
+    deleteFileTimeMap : Map<string,number>; 
   }
   
   // 初始化全局变量（仅在服务器端运行）
@@ -27,12 +29,24 @@ export interface GlobalData {
       lastUpdated: new Date(0), // 初始化为很久以前
       blobMap : new Map<string,FileBlobInfo>(),
       fileMap : new Map<string,FileInfo>(),
+      profileMap : new Map<string,UserProfile>(),
       deleteFileTimeMap : new Map<string,number>,
     };
   }
 
   export function getFiles() :Array<FileInfo>{
       return Array.from(global.globalData.fileMap.values());
+  }
+
+  export function addFileId(owner : string , fileId:string){
+     let profile : UserProfile | undefined = globalData.profileMap.get(owner);
+     if(!profile){
+        profile =  {
+          fileIds : [],
+        };
+        globalData.profileMap.set(owner,profile);
+     }
+     profile.fileIds.push(fileId);
   }
 
   export function addFile(file:FileInfo){

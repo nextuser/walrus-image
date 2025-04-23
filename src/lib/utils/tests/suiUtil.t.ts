@@ -1,54 +1,62 @@
 import { getSiteUrl } from "@/lib/utils";
 import { getSigner } from "./local_key";
-import {getProfile, queryFileBobInfo,getCreateProfileTx} from "../suiUtil"
+import {getProfile, queryFileBobInfo,getCreateProfileTx, queryFileInfoObjects} from "../suiUtil"
 import { getServerSideSuiClient } from "./suiClient";
+import { Keypair } from "@mysten/sui/cryptography";
 import config from "@/config/config.json";
+import { SuiClient } from "@mysten/sui/client";
 
 const suiClient = getServerSideSuiClient();
 const signer = getSigner();
 const sender = signer.getPublicKey().toSuiAddress();
 
-function test_profile(){
-
+async function  test_profile(){
+    const profile = await getProfile(suiClient,'0xafe36044ef56d22494bfe6231e78dd128f097693f2d974761ee4d649e61f5fa2');
+    console.log('test_profile result',profile);
+}
+async function test_profile_null(){
+    const addr ='0xebb49dad8eae5f8cf9e55fbb02c1addd54415ac1d4422f8b47cb898bfbdc49f8'
+    const profile = await getProfile(suiClient,addr);
+    console.log('test profile_null:',profile,'for owner:',addr)
 }
 
-async function createProfile() : Promise<string | null>{
-   console.log('createProfile begin');
-   const tx = getCreateProfileTx();
-   const rsp = await suiClient.signAndExecuteTransaction({
-    transaction:tx,
-    signer,
-    options:{showEffects:true, showObjectChanges:true}
-   });
-   console.log('digest',rsp.digest);
-   if(rsp.effects && rsp.effects.status.status == 'success' && rsp.objectChanges){
-     
-     //console.log("createProfile object changes:",rsp.objectChanges);
-     for( let o  of rsp.objectChanges){
-        if(o.type == 'created' && o.objectType ==`${config.pkg}::file_blob::Profile`){
-            return o.objectId;
-        }
-     }
-   }
-   console.log("createProfile fail to find profileId,effects:",rsp.effects, ",object changes:",rsp.objectChanges);
-   return null;
 
-}
-async function test_file_blob(){
-    let profile = await getProfile(suiClient,sender);
-    if(profile == null){
-        console.log('no profile,begin to create profile');
-        profile = await createProfile();
-    }
+
+
+// async function test_file_blob(){
+//     let profile = await getProfile(suiClient,sender);
+//     if(profile == null){
+//         console.log('no profile,begin to create profile');
+//         profile = await createProfile(suiClient,signer);
+//     }
     
+//     if(profile == null){
+//         console.log('create profile fail');
+//         return ;
+//     }
+
+//     console.log(signer.getPublicKey().toSuiAddress());
+//     queryFileBobInfo(suiClient,profile,sender);
+// }
+
+
+async function test_file_info_objects(){
+    let profile = await getProfile(suiClient,sender);
+   
     if(profile == null){
-        console.log('create profile fail');
+        console.log('find  profile fail');
         return ;
     }
 
-    
-    queryFileBobInfo(suiClient,profile,sender);
+    console.log(signer.getPublicKey().toSuiAddress());
+    queryFileInfoObjects(suiClient,profile,sender);
 }
+//test_file_info_objects();
+//test_file_blob();
 
 
-test_file_blob();
+//test_create_profile()
+
+//test_profile();
+
+test_profile_null();

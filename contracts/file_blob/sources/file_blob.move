@@ -7,9 +7,10 @@ use sui::sui::SUI;
 use sui::balance::{Self,Balance};
 use sui::coin::Coin;
 
-const CONTRACT_WALRUS_FEE : u64 = 2_400_000;
-const CONTRACT_IMAGE_FEE : u64 = 3_000_000;
-const WALRUS_KB_FEE  : u64 = 150_000;
+const CONTRACT_COST : u64 = 2_400_000;
+const CONTRACT_FEE : u64 = 3_000_000;
+const WALRUS_KB_FEE_WAL  : u64 = 150_000;
+const PRICE_WAL_TO_SUI_1000 : u64 = 172;
 
 
 //==========================data struct=================================
@@ -44,10 +45,13 @@ public struct FileAdded has copy,drop{
 */
 
 public struct FeeConfig has store,drop{
-    contract_walrus_fee : u64,
-    contract_image_fee : u64,
-    walrus_kb_fee : u64
+    contract_cost : u64,
+    contract_fee : u64,
+    wal_per_kb : u64,
+    price_wal_to_sui_1000 : u64 // price = price_wal_to_sui_1000 /1000 
 }
+
+
 
 
 public struct Storage has key,store{
@@ -118,9 +122,10 @@ fun create_storage(ctx : &mut TxContext){
         id : object::new(ctx),
         manager : ctx.sender(),
         feeConfig: FeeConfig{
-            contract_walrus_fee : CONTRACT_WALRUS_FEE,
-            contract_image_fee : CONTRACT_IMAGE_FEE,
-            walrus_kb_fee : WALRUS_KB_FEE
+            contract_cost : CONTRACT_COST,
+            contract_fee : CONTRACT_FEE,
+            wal_per_kb : WALRUS_KB_FEE_WAL,
+            price_wal_to_sui_1000 : PRICE_WAL_TO_SUI_1000
         },
         balance : balance::zero(),
         file_blob_map : table::new<u256,address>(ctx),
@@ -134,6 +139,15 @@ fun create_storage(ctx : &mut TxContext){
     transfer::share_object(storage);
 }
 
+public fun updatePrice(storage : &mut Storage,walToSui : u64) {
+    storage.feeConfig.price_wal_to_sui_1000 = walToSui;
+}
+
+public fun updateConfig(storage : &mut Storage, fee :u64){
+    storage.feeConfig.contract_fee = fee;
+}
+
+
 
 entry fun withdraw(storage : &mut Storage, ctx : &mut TxContext){
     assert!(ctx.sender() == storage.manager,ERROR_WITDRAW_SENDER_SHOULD_BE_MANAGER);
@@ -144,7 +158,8 @@ entry fun withdraw(storage : &mut Storage, ctx : &mut TxContext){
 
 public fun calcuate_fee(  config : &FeeConfig, size : u64) : u64{
     let kbs = size >> 10;
-    config.contract_image_fee + config.contract_walrus_fee  + kbs * config.walrus_kb_fee
+    let wal_cost = kbs * config.wal_per_kb * config.price_wal_to_sui_1000/1000; 
+    config.contract_fee + config.contract_cost  +  wal_cost 
 }
 
 public fun recharge(profile : &mut Profile, coin : Coin<SUI>) : u64{

@@ -8,6 +8,7 @@ import { FileBlobInfo } from "../types";
 import { getLocalSigner } from "./local_key";
 import { ProfileCreated ,DynamicField,Profile,Address,Struct,FileBlobAddResult,FileBlob} from "../suiTypes";
 import { getRecentBlobs ,getFileBlobsFor,calcuate_fee,getProfile,addFile,addFileBlob,getStorage} from "../suiUtil";
+import { suiClient } from "@/contracts";
 
 const sc = getServerSideSuiClient();
 const manager = getSigner();
@@ -169,6 +170,35 @@ function test_get_storage(){
 }
 //test_all();
 
-getRecentBlobs(sc);
+//getRecentBlobs(sc);
 
-test_get_storage();
+//test_get_storage();
+
+function testQueryFee()
+{
+    getStorage(suiClient).then((st)=>{
+        if(!st ){
+            console.error('find storage failed')
+            return ;
+        }
+
+
+        let fileSizes = [100,200,300,400,1000,2000];
+        for(let l of fileSizes){
+            const f  = calcuate_fee(st.feeConfig,l * 1024);
+            console.log(`${l} KB Fee ${f/1e9 } SUI`);
+        }
+        console.log('feeConfig', st.feeConfig);
+        // getProfile(suiClient,st.profile_map.id.id.bytes,client_addr).then((profile)=>{
+        //     if(!profile){
+        //         console.error('not found profile')
+        //         return;
+        //     }
+
+        // });
+    });
+    
+}
+
+
+testQueryFee();

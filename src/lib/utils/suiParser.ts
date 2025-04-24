@@ -116,13 +116,20 @@ export const Profile = bcs.struct('Profile',
     file_ids : bcs.vector(bcs.u256())
 });
 
-
+/**
+ * public struct FeeConfig has store,drop{
+    contract_cost : u64,
+    contract_fee : u64,
+    wal_per_kb : u64,
+    price_wal_to_sui_1000 : u64 // price = price_wal_to_sui_1000 /1000 
+}
+ */
 export const FeeConfig = bcs.struct('FeeConfig',{
-    contract_walrus_fee : bcs.u64(),
-    contract_image_fee : bcs.u64(),
-    walrus_kb_fee : bcs.u64()
+    contract_cost : bcs.u64(),
+    contract_fee : bcs.u64(),
+    wal_per_kb : bcs.u64(),
+    price_wal_to_sui_1000 : bcs.u64()
 });
-
 
 export function Table<K, V>(K: BcsType<K>, V: BcsType<V>) {
     return bcs.struct("Table<${K.name}, ${V.name}>", {

@@ -43,6 +43,16 @@ export  function getAddFileTx(owner :string,hash : string,size :number){
     return tx;
 } 
 
+export function getRechargeTx(profileId : string,amount_mist : bigint){
+    const tx = new Transaction();
+    let new_coin = tx.splitCoins(tx.gas,[amount_mist]);
+    tx.moveCall({
+        target:`${config.pkg}::file_blob::recharge`,
+        arguments:[tx.object(profileId), new_coin]
+    })
+    return tx;
+}
+
 export async function getRecentBlobs(sc : SuiClient){
     const eventType = `${config.pkg}::file_blob::FileBlobAddResult`;
     let rsp = await sc.queryEvents({
@@ -119,10 +129,8 @@ export type FeeConfigType = ReturnType<typeof parser.FeeConfig.parse>;
 
 export function calcuate_fee(  config : FeeConfigType, size : number) : number{
     let kbs = size >> 10;
-    return Number(config.contract_image_fee) + Number(config.contract_walrus_fee)  + kbs * Number(config.walrus_kb_fee)
+    return Number(config.contract_cost) + Number(config.contract_fee)  + kbs * Number(config.wal_per_kb) * Number(config.price_wal_to_sui_1000) /1000 
 }
-
-
 
 export async function  getStorage(sc:SuiClient) : Promise<StorageType | undefined>{
     const obj = await sc.getObject({ id : config.storage,options:{showContent:true,showBcs:true}});

@@ -34,7 +34,7 @@ export type ProfileCreated = {
     sender : Address,
 };
 
-type FileBlob ={
+export type FileBlob ={
     file_id : string,
     blob_id : string,
     start : string,

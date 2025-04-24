@@ -6,14 +6,17 @@ import { Transaction,TransactionArgument ,TransactionObjectArgument} from "@myst
 import config from '@/config/config.json'
 import { fromBase64, toBase64,fromBase58, toHex } from "@mysten/sui/utils";
 import bs58 from 'bs58';
-import { FileBlob,FileBlobObject, ID } from "./suiParser";
+import * as parser from "./suiParser";
 import { GasCostSummary } from "@mysten/sui/client";
 import { ContentType } from "./content";
-import { blobId_to_u256 } from "./convert";
 import * as sp from "./suiParser";
-import { bcs, toHEX } from "@mysten/bcs";
+import { bcs } from "@mysten/bcs";
+import { u256_to_blobId,u256_to_hash,
+         hash_to_u256,blobId_to_u256 
+        } from "@/lib/utils/convert";
 import { Keypair } from "@mysten/sui/cryptography";
-import { hash_to_u256 } from "@/lib/utils/convert";
+import { FileBlob,FileBlobAddResult,Profile,
+        DynamicField,Struct,Address } from "./suiTypes";
 /**
  * 
 entry fun add_file(storage : &mut Storage,
@@ -40,7 +43,27 @@ export  function getAddFileTx(owner :string,hash : string,size :number){
     return tx;
 } 
 
-
+export async function getRecentBlobs(sc : SuiClient){
+    const eventType = `${config.pkg}::file_blob::FileBlobAddResult`;
+    let rsp = await sc.queryEvents({
+        query:{
+            MoveEventType : eventType
+        },
+        order :'descending',
+    
+    })
+    let blobs : FileBlob[] = [];
+    for(let e of rsp.data){
+        if(e.type == eventType){
+            let r = e.parsedJson as FileBlobAddResult
+            for(let b of r.blobs){
+                blobs.push(b);
+            }
+        }
+    }
+    console.log( 'file blobs ', blobs);
+    return blobs
+}
 
 
 /*
@@ -91,6 +114,33 @@ entry fun add_file_blob(
     return tx;
 }
 
+export type StorageType = ReturnType<typeof parser.Storage.parse>;
+export type FeeConfigType = ReturnType<typeof parser.FeeConfig.parse>;
+
+export function calcuate_fee(  config : FeeConfigType, size : number) : number{
+    let kbs = size >> 10;
+    return Number(config.contract_image_fee) + Number(config.contract_walrus_fee)  + kbs * Number(config.walrus_kb_fee)
+}
+
+
+
+export async function  getStorage(sc:SuiClient) : Promise<StorageType | undefined>{
+    const obj = await sc.getObject({ id : config.storage,options:{showContent:true,showBcs:true}});
+
+    if(obj.data?.bcs?.dataType == 'moveObject'){
+        console.log('parse bcs');
+        let st = parser.Storage.parse(fromBase64(obj.data.bcs.bcsBytes))
+        //console.log("storage",st);
+        //console.log("storage profile_map.id",st.profile_map.id.id as unknown )
+        //console.log("storage file_map.id",st.file_blob_map.id.id as unknown )
+        //console.log(st.balance.value,st.feeConfig.contract_image_fee, st.feeConfig.contract_walrus_fee, st.feeConfig.walrus_kb_fee);
+        return st;
+    }
+
+}
+
+
+
 // export async function createProfile(suiClient:SuiClient,signer : Keypair) : Promise<string | null>{
 //    console.log('createProfile begin');
 //    const tx = getCreateProfileTx(suiClient,);
@@ -110,7 +160,7 @@ entry fun add_file_blob(
 
 // }
 
-export async function  getProfile(suiClient :SuiClient, owner :string) : Promise<string | undefined>{
+export async function  getProfileId(suiClient :SuiClient, owner :string) : Promise<string | undefined>{
     const tx = new Transaction();
     tx.setSender(owner);
     tx.moveCall({
@@ -141,6 +191,77 @@ export async function  getProfile(suiClient :SuiClient, owner :string) : Promise
      } else{
         console.log('get profile error',rsp.effects.status.error)
      }
+}
+
+
+
+export async function getFileBlobsFor(suiClient : SuiClient,
+                                owner:string): Promise<FileBlobInfo[]>{
+                                
+    const fbs : FileBlobInfo[] = [];
+    const tx = new Transaction();
+    tx.moveCall({
+        target : `${config.pkg}::file_blob::get_file_blobs`,
+        arguments: [tx.object(config.storage), tx.pure.address(owner)]
+    })
+    tx.setGasBudget(1e8);
+    console.log('file_blob::get_file_blobs for owner',owner);
+    let rsp = await suiClient.devInspectTransactionBlock({transactionBlock:tx, sender : owner});
+    const fb_ids :string[] = [];
+    if(rsp.effects?.status.status == 'success' && rsp.results){
+        for( let result of rsp.results){
+            if(!result.returnValues){
+                console.log('no returnvalues');
+                continue;
+            } 
+            for(let rv of result.returnValues){
+                console.log('rv ',rv[0]);
+                if(rv[0].length == 1 && rv[0][0] == 0){
+                    continue;
+                }
+                console.log('type:',rv[1]);
+                let ret = parser.Vector_Address.parse(new Uint8Array(rv[0]));
+                for(let a of ret){
+                    if(fb_ids.indexOf(a) == -1){
+                        fb_ids.push(a);
+                    }
+                }
+            }
+        }
+    }
+    console.log('get object ids ',fb_ids);
+    if(fb_ids.length == 0){
+        
+        console.log('get profile images ids', rsp);
+        return fbs; 
+    }
+    let objectRsps = await suiClient.multiGetObjects({
+        ids:fb_ids,
+        options:{showBcs:true}
+    })
+
+    for(let o of objectRsps){
+        if(o.data?.bcs?.dataType == 'moveObject'){
+            let fbo = parser.FileBlobObject.parse(fromBase64(o.data.bcs.bcsBytes)).file_blob;
+            let fb :FileBlobInfo = {
+                hash : u256_to_hash(BigInt(fbo.file_id)),
+                status :{
+                  uploaded : true,
+                  uploadInfo : {
+                    blobId : u256_to_blobId(BigInt(fbo.blob_id)),
+                  }
+                },
+                contentType:fbo.mime_type ,
+                range:{
+                  start :fbo.start,
+                  end : fbo.end,
+                }
+            }
+            console.log('parse succ fbo ',fbo, ' convert to fb ', fb);
+            fbs.push(fb);
+        }
+    }
+    return fbs;
 }
 
 
@@ -224,6 +345,73 @@ async function dryrun(suiClient : SuiClient,tx : Transaction):Promise<DryRunTran
 }
 
 
+/**
+ * 添加File  , 在server 端
+ */
+export async function addFile(suiClient : SuiClient,signer: Keypair,owner: string, hash : string ,size : number): Promise<bigint>{
+    if(signer.getPublicKey().toSuiAddress() != config.operator){
+        console.log('operator error: ',config.operator, ' manager:',signer.getPublicKey().toSuiAddress);
+        return 0n;
+    }
+    let tx = getAddFileTx(owner ,hash,size);
+    const rsp = await suiClient.signAndExecuteTransaction({
+        transaction: tx,
+        signer : signer,
+        options:{showEffects: true}
+    });
+    
+    if(rsp.effects?.status.status == 'success'){
+        const cost =  getCost(rsp.effects.gasUsed);
+        console.log('addFile  success,gas cost',Number(cost)/1e9);
+        return cost;
+    } else{
+        console.log('addFile failed,digest:',rsp.digest, ',rsp:',rsp)
+    }
+    return 0n;
+}
+
+
+/**
+ * 添加 FielBlobObject  在服
+ * 后台任务task.ts  storage.manager 执行
+ */
+export async function addFileBlob(suiClient:SuiClient,blobId:string,blobs :FileBlobInfo[],signer :Keypair){
+    
+    let tx = getAddBlobTx(blobId,blobs);
+    if(!tx){
+        console.error('get tx failed ');
+        return;
+    }
+    return suiClient.signAndExecuteTransaction({
+        transaction:tx,
+        signer,
+        options:{showEvents:true,showEffects:true}
+    }).then((rsp)=>{
+        if(rsp.effects?.status?.status == 'success' ){
+            const gasCost = getCost(rsp.effects.gasUsed);
+            console.log('addFileBlob succ  :cost=',Number(gasCost)/1e9);
+
+            if(!rsp.events){
+                console.log('addFileBlob no event ');
+                return gasCost;
+            }
+            for(let e of rsp.events){
+                if(e.type == `${config.pkg}::file_blob::FileBlobAddResult`){
+                   let result =  e.parsedJson as FileBlobAddResult;
+                   if(result.fbo_ids.length > 0){
+                    console.log(`filblob add  sender ${signer.getPublicKey().toSuiAddress()},fbo id :${result.fbo_ids[0]}`);
+                   }
+                }
+                console.log('event content :',e.type, e.parsedJson );
+            }   
+            return gasCost;
+        } else{
+            console.error('fail to addFileBlob',rsp);
+            return 0n;
+        }
+    })
+}
+
 /*
 
 public fun get_file_blobs(profile : &Profile)  
@@ -251,85 +439,49 @@ export async  function queryFileBobInfo(suiClient:SuiClient, profileId:string,se
      let objs = await suiClient.multiGetObjects({ids})
      for(let blobRsp of objs){
         if(blobRsp.data && blobRsp.data.bcs && blobRsp.data.bcs.dataType == 'moveObject'){
-            let o = FileBlobObject.parse(fromBase64(blobRsp.data.bcs.bcsBytes))
+            let o = parser.FileBlobObject.parse(fromBase64(blobRsp.data.bcs.bcsBytes))
             console.log('file blob',o.file_blob.blob_id, o.file_blob);
         }
      }
+}
 
-    //  const tx = new Transaction();
-    //  tx.moveCall({
-    //     target : `${config.pkg}::file_blob::get_file_blobs`,
-    //     arguments : [tx.object(profileId)]
-    //  })
-    //  tx.setSender(sender);
-    //  tx.setGasBudget(1e8);
-    //  const rsp = await suiClient.devInspectTransactionBlock({transactionBlock: tx, sender : sender});
-    //  console.log('queryFileBlobInfo rsp',rsp);
-    //  if(rsp.effects && rsp.effects.status.status == 'success'  && rsp.results){
+export async function getFileBlobs(suiClient: SuiClient,ids : string[]){
+    let objs = await suiClient.multiGetObjects({ids})
+    for(let blobRsp of objs){
+       if(blobRsp.data && blobRsp.data.bcs && blobRsp.data.bcs.dataType == 'moveObject'){
+           let o = parser.FileBlobObject.parse(fromBase64(blobRsp.data.bcs.bcsBytes))
+           console.log('getFileBlobs: file blob',o.file_blob.blob_id, o.file_blob);
+       }
+    }
+}
+
+export async function getProfile(sc : SuiClient, 
+                                parentId : string, 
+                                owner : string) : Promise<Profile|undefined>
+{
+    const rsp = await sc.getDynamicFieldObject({
+        parentId,
+        name : {
+            type:'address',
+            value: owner
+        }
+    });
+    //console.log('profile dynamic field',rsp);
+    if( rsp.data?.content?.dataType == 'moveObject'){
         
-    //     for (let [i,r] of  rsp.results.entries()){
-    //         if(!r.returnValues){
-    //             continue;
-    //         }
-    //         console.log('rv count:',r.returnValues.length)
-            
-    //         for(let [j,rv] of  r.returnValues.entries()){
-    //             console.log(`results[${i}] returnValues[${j}]`,rv[0],',type:', rv[1]);
-    //         }
-    //     }
-    //  }
-    //  console.log('rsp events');
-    // for(let e of rsp.events){
-    //     console.log(e.parsedJson);
-    // }
-     
-
-
-    // let rsp2 = await dryrun(suiClient,tx);
-
-    // console.log('dry run rsp2 2events' ,rsp2);
-    // for(let e of rsp2.events){
-    //     console.log(e.parsedJson);
-    // }
-
-    
+        const f = rsp.data.content.fields as unknown as DynamicField<Address,Struct<Profile>>;
+        console.log("getDynamicProfile:profile fields",f.id.id,f.value.fields.balance, f.value.fields.file_ids);
+        return f.value.fields;
+    } else{
+        console.log('no data for owner:',owner);
+    }
 }
-
-
-/*
-public struct FileBlobCreated has copy,drop{
-    file_blob : FileBlob,
-    sender : address
-}
-
- * @param suiClient
- */
-// export async  function queryFileInfo(suiClient:SuiClient, profileId:string,sender : string){
-
-//     const tx = new Transaction();
-//     tx.moveCall({
-//        target : `${config.pkg}::file_blob::get_file_info`,
-//        arguments : [tx.object(profileId)]
-//     })
-//     tx.setGasBudget(1e8);
-//     const rsp = await suiClient.devInspectTransactionBlock({transactionBlock: tx, sender : sender});
-//     console.log('queryFileInfo rsp',rsp);
-//     if(rsp.effects && rsp.effects.status.status == 'success'  && rsp.results){
-       
-//        for (let [i,r] of  rsp.results.entries()){
-//            if(!r.returnValues){
-//                continue;
-//            }
-//            for(let rv of r.returnValues){
-//                console.log(`return values of ${i} arr and string`,rv[0], rv[1]);
-//            }
-//        }
-//     }
-
-
-//    await dryrun(suiClient,tx);
    
-// }
+    
+
+
+
+
 
 
 export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:string,sender : string){

@@ -1,22 +1,22 @@
 import { getSiteUrl } from "@/lib/utils";
 import { getSigner } from "./local_key";
-import {getProfile, queryFileBobInfo,getCreateProfileTx, queryFileInfoObjects} from "../suiUtil"
+import {getProfileId, queryFileBobInfo,getCreateProfileTx, queryFileInfoObjects} from "../suiUtil"
 import { getServerSideSuiClient } from "./suiClient";
 import { Keypair } from "@mysten/sui/cryptography";
 import config from "@/config/config.json";
 import { SuiClient } from "@mysten/sui/client";
-
+import {getProfile} from '@/lib/utils/suiUtil'
 const suiClient = getServerSideSuiClient();
 const signer = getSigner();
 const sender = signer.getPublicKey().toSuiAddress();
 
 async function  test_profile(){
-    const profile = await getProfile(suiClient,'0xafe36044ef56d22494bfe6231e78dd128f097693f2d974761ee4d649e61f5fa2');
+    const profile = await getProfileId(suiClient,'0xafe36044ef56d22494bfe6231e78dd128f097693f2d974761ee4d649e61f5fa2');
     console.log('test_profile result',profile);
 }
 async function test_profile_null(){
     const addr ='0xebb49dad8eae5f8cf9e55fbb02c1addd54415ac1d4422f8b47cb898bfbdc49f8'
-    const profile = await getProfile(suiClient,addr);
+    const profile = await getProfileId(suiClient,addr);
     console.log('test profile_null:',profile,'for owner:',addr)
 }
 
@@ -41,7 +41,7 @@ async function test_profile_null(){
 
 
 async function test_file_info_objects(){
-    let profile = await getProfile(suiClient,sender);
+    let profile = await getProfileId(suiClient,sender);
    
     if(profile == null){
         console.log('find  profile fail');

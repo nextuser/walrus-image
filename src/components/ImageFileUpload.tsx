@@ -6,7 +6,7 @@ from "@/components/ui/dialog";
 import { Copy, Trash2 } from "lucide-react";
 import { Button } from './ui/button';
 import { useSuiClient,useCurrentAccount } from '@mysten/dapp-kit';
-import {  getProfile } from '@/lib/utils/suiUtil';
+import {  getProfileId } from '@/lib/utils/suiUtil';
 import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { getCreateProfileTx,getAddFileTx } from '@/lib/utils/suiUtil';
 import { FileInfo } from '@/lib/utils/types';
@@ -59,17 +59,18 @@ export default  function ImageFileUpload(props:{fileUrl:string, setFileUrl: (url
 
   useEffect(()=>{
     if(!currentAccount) return;
-    getProfile(suiClient,currentAccount.address).then((id:string|undefined )=>setProfileId(id))
+    getProfileId(suiClient,currentAccount.address).then((id:string|undefined )=>setProfileId(id))
   },[currentAccount])
   const createProfile = async function (){
       const tx = getCreateProfileTx(20_000_000n);
       if(!tx) return;
       const ret = await signAndExecuteTransaction({ transaction:tx},create_profile_callback);
       console.log("createProfile ret=",ret);
-      return await getProfile(suiClient,owner);
+      return await getProfileId(suiClient,owner);
   }
 
   const addFileOnSui = async function(profileId : string, fileInfo : FileInfo ){
+    
     const tx = getAddFileTx(owner, fileInfo.hash,fileInfo.size);
     const ret = await signAndExecuteTransaction({transaction:tx}, add_file_callback);
     console.log("addFileOnSui ret:",ret);

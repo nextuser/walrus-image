@@ -6,7 +6,6 @@ import { UPLOAD_DIR } from '@/lib/utils/dirs';
 import {ContentType, getContentTypeByExtType,getContentTypeByMimetype,getExtTypeByContentType} from '@/lib/utils/content'
 import {getImageUrl,generateHash} from '@/lib/utils'
 import { addFile ,addFileId,getFileInfo,hasFile} from '@/lib/utils/globalData';
-import {getProfile} from '@/lib/utils/suiUtil'
 import { getServerSideSuiClient } from '@/lib/utils/tests/suiClient';
 import { FileInfo } from '@/lib/utils/types';
 import { startDataCollection } from '@/lib/utils/globalData';

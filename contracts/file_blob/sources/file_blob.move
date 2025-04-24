@@ -7,17 +7,9 @@ use sui::sui::SUI;
 use sui::balance::{Self,Balance};
 use sui::coin::Coin;
 
-const CONTRACT_WALRUS_FEE : u64 = 2_000_000;
-const CONTRACT_IMAGE_FEE : u64 = 1_000_000;
-const WALRUS_KB_FEE  : u64 = 1000;
-
-public struct FeeConfig has store{
-    contract_walrus_fee : u64,
-    contract_image_fee : u64,
-    walrus_kb_fee : u64
-}
-
-
+const CONTRACT_WALRUS_FEE : u64 = 2_400_000;
+const CONTRACT_IMAGE_FEE : u64 = 3_000_000;
+const WALRUS_KB_FEE  : u64 = 150_000;
 
 
 //==========================data struct=================================
@@ -50,6 +42,14 @@ public struct FileAdded has copy,drop{
 /**
 保证每个用户一个profile，方便遍历所有profile
 */
+
+public struct FeeConfig has store,drop{
+    contract_walrus_fee : u64,
+    contract_image_fee : u64,
+    walrus_kb_fee : u64
+}
+
+
 public struct Storage has key,store{
     id : UID,
     manager : address,
@@ -103,8 +103,9 @@ public struct StroageCreated has copy ,drop{
 const ERR_PROFILE_CREATED :u64 = 3;
 //const ERR_PROFILE_SHOULD_CONTAINS_FILE_ID : u64 = 4;  
 const ERROR_ADD_BLOB_ARG_PARAM_INVALID : u64 = 5; 
-const ERROR_SENDER_IS_NOT_STORAGE_MANAGER : u64 = 6; 
-
+const ERROR_ADD_FILE_SENDER_SHOULD_BE_MANAGER : u64 = 6;
+const ERROR_ADD_BLOB_SENDER_SHOULD_BE_MANAGER : u64 = 7; 
+const ERROR_WITDRAW_SENDER_SHOULD_BE_MANAGER : u64 = 8; 
 //===========================================functions ===========================================
 
 fun init(ctx : &mut TxContext){
@@ -133,6 +134,13 @@ fun create_storage(ctx : &mut TxContext){
     transfer::share_object(storage);
 }
 
+
+entry fun withdraw(storage : &mut Storage, ctx : &mut TxContext){
+    assert!(ctx.sender() == storage.manager,ERROR_WITDRAW_SENDER_SHOULD_BE_MANAGER);
+    let amount = storage.balance.value();
+    let coin = storage.balance.split(amount).into_coin(ctx);
+    transfer::public_transfer(coin,ctx.sender());
+}
 
 public fun calcuate_fee(  config : &FeeConfig, size : u64) : u64{
     let kbs = size >> 10;
@@ -196,7 +204,7 @@ entry fun add_file(storage : &mut Storage,
                     file_id :u256,
                     size : u32,
                     ctx : & TxContext){
-    assert!(storage.manager == ctx.sender(),ERROR_SENDER_IS_NOT_STORAGE_MANAGER);
+    assert!(storage.manager == ctx.sender(),ERROR_ADD_FILE_SENDER_SHOULD_BE_MANAGER);
     let  profile : &mut Profile = storage.profile_map.borrow_mut(owner);
     profile.file_ids.push_back(file_id);
     let fee = calcuate_fee(&storage.feeConfig,size as u64 );
@@ -218,7 +226,7 @@ entry fun add_file_blob(
             ends : vector<u32>,
             ctx : &mut TxContext)
 {
-    assert!(storage.manager == ctx.sender(),ERROR_SENDER_IS_NOT_STORAGE_MANAGER);
+    assert!(storage.manager == ctx.sender(),ERROR_ADD_BLOB_SENDER_SHOULD_BE_MANAGER);
     let count = file_ids.length();
     
     assert!(count == mime_types.length() 

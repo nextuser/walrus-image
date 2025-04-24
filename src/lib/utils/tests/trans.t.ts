@@ -3,23 +3,97 @@ import { getSigner } from "./local_key";
 import {getProfile, queryFileBobInfo,getCreateProfileTx, queryFileInfoObjects, getAddFileTx, getCost, getAddBlobTx} from "../suiUtil"
 import { Keypair, Signer } from "@mysten/sui/cryptography";
 import config from "@/config/config.json";
-import { SuiClient } from "@mysten/sui/client";
+import { MoveStruct, SuiClient } from "@mysten/sui/client";
 import { getServerSideSuiClient } from "./suiClient";
 import { transcode } from "buffer";
-import { ProfileCreated ,FileBlobAddResult,FileBlob} from "../suiParser";
+import * as parser from "../suiParser";
 import { FileBlobInfo } from "../types";
 import { Transaction } from "@mysten/sui/transactions";
-import { bcs, fromBase64, toHex } from "@mysten/bcs";
+import { bcs, fromBase64, toHEX, toHex } from "@mysten/bcs";
 import { u256_to_blobId,u256_to_hash,hash_to_u256,blobId_to_u256, } from "../convert";
 import { FileInfo } from "../types";
 import { getLocalSigner } from "./local_key";
 import { Vector_Address } from "../suiParser";
+import { ProfileCreated ,DynamicField,Profile,Address,Struct,FileBlobAddResult} from "../suiTypes";
+
 
 const suiClient = getServerSideSuiClient();
 const manager = getSigner();
 const client = getLocalSigner();
 const client_addr = client.getPublicKey().toSuiAddress();
+/**
+ * 
+ * 
+ @param sc public fun calcuate_fee(  config : &FeeConfig, size : u64) : u64{
+    let kbs = size >> 10;
+    config.contract_image_fee + config.contract_walrus_fee  + kbs * config.walrus_kb_fee
+}
+ */
+// async function getFeeAmount(sc : SuiClient){
+//     const tx = new Transaction();
+//     tx.moveCall({
+//         target:`file_blob::`,
+//         arguments:[]
+//     })
+//     tx.setGasBudget(1e6);
+//     tx.setSender(client_addr);
+//     let rsp = await sc.devInspectTransactionBlock({
+//         sender :client_addr,
+//         transactionBlock:tx,
+//     })
+// }
 
+
+
+
+
+
+// type FeeConfig = {
+//     contract_walrus_fee : number,
+//     contract_image_fee : number,
+//     walrus_kb_fee : number
+// }
+
+type StorageType = ReturnType<typeof parser.Storage.parse>;
+type FeeConfigType = ReturnType<typeof parser.FeeConfig.parse>;
+
+function calcuate_fee(  config : FeeConfigType, size : number) : number{
+    let kbs = size >> 10;
+    return Number(config.contract_image_fee) + Number(config.contract_walrus_fee)  + kbs * Number(config.walrus_kb_fee)
+}
+
+async function  getStorage(sc:SuiClient) : Promise<StorageType | undefined>{
+    const obj = await sc.getObject({ id : config.storage,options:{showContent:true,showBcs:true}});
+
+    if(obj.data?.bcs?.dataType == 'moveObject'){
+        console.log('parse bcs');
+        let st = parser.Storage.parse(fromBase64(obj.data.bcs.bcsBytes))
+        //console.log("storage",st);
+        //console.log("storage profile_map.id",st.profile_map.id.id as unknown )
+        //console.log("storage file_map.id",st.file_blob_map.id.id as unknown )
+        //console.log(st.balance.value,st.feeConfig.contract_image_fee, st.feeConfig.contract_walrus_fee, st.feeConfig.walrus_kb_fee);
+        return st;
+    }
+
+}
+
+async function getDynamicProfile(sc : SuiClient, 
+                                parentId : string, 
+                                owner : string) : Promise<Profile|undefined>{
+    const rsp = await sc.getDynamicFieldObject({
+        parentId,
+        name : {
+            type:'address',
+            value: owner
+        }
+    });
+    //console.log('profile dynamic field',rsp);
+    if( rsp.data?.content?.dataType == 'moveObject'){
+        const f = rsp.data.content.fields as unknown as DynamicField<Address,Struct<Profile>>;
+        console.log("getDynamicProfile:profile fields",f.id.id,f.value.fields.balance, f.value.fields.file_ids);
+        return f.value.fields;
+    }
+}
 /**
  * 查找当前用户的profile
  *  * 1. 获取当前用户的profile
@@ -144,9 +218,12 @@ import { ContentType } from "../content";
 import { uploadBlob } from "../blobUtil";
 import { sign } from "crypto";
 import { stringify } from "querystring";
+import { queryOptions } from "@tanstack/react-query";
+import { lightningCssTransformStyleAttribute } from "next/dist/build/swc/generated-native";
+import { ParsedRelativeUrl } from "next/dist/shared/lib/router/utils/parse-relative-url";
 
 
-async function getProfileImages(suiClient : SuiClient,
+async function getFileBlobsFor(suiClient : SuiClient,
                                 owner:string): Promise<FileBlobInfo[]>{
                                 
     const fbs : FileBlobInfo[] = [];
@@ -212,9 +289,6 @@ async function getProfileImages(suiClient : SuiClient,
             fbs.push(fb);
         }
     }
-    
-
-
     return fbs;
 }
 
@@ -250,6 +324,8 @@ function getTestFileBlobInfo(blobId : string, hash : string){
     return fb;
 }
 async function test_all(){
+    // let storage = await getStorage(suiClient);
+    // if(storage == null) return;
     let profile = await getProfile(suiClient,client_addr);
 
     if(!profile) {
@@ -262,8 +338,17 @@ async function test_all(){
     await addFile(suiClient,hash, blob.range.end - blob.range.start );
     await addFileBlob( blobId,[blob],manager);
 
-    getProfileImages(suiClient,client_addr);
+    getFileBlobsFor(suiClient,client_addr);
 
 }
 
-test_all();
+//test_all();
+getStorage(suiClient).then((st)=>{
+    if(st){
+        console.log('storage balance',st.balance.value,'feeConfig=',st.feeConfig);
+        const size = 33332;
+        const fee = calcuate_fee(st.feeConfig,size);
+        console.log('calcuate_fee size of ',size , ' fee is',fee / 1e9);
+        getDynamicProfile(suiClient,st.profile_map.id.id.bytes,client_addr).then((v:any)=>{ if(!v){console.log(v.balance)} })
+    }
+})

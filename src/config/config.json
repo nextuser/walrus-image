@@ -1,6 +1,6 @@
 {
     "env": "testnet",
-    "pkg": "0xb69f9977dad231eb90dbc292ad30b631db19dd6ef08b4d5e723ac16e24a5ccf4",
-    "storage": "0x4c92769a9e031cd91aece18940bebf9d5a0aa4600f7e1cdb645738f68626f8a5",
+    "pkg": "0xc8713d7719e0c9156a8401eff08817446720aa47cd188249fb65a21c4773e457",
+    "storage": "0xbf4d074cdd90f033782bdaf59b7a810b1b3fddeedbade0da55ff67349acd3433",
     "operator": "0xafe36044ef56d22494bfe6231e78dd128f097693f2d974761ee4d649e61f5fa2"
 }

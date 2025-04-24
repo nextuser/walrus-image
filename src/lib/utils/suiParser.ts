@@ -1,7 +1,8 @@
 import { bcs } from "@mysten/sui/bcs";
 import { fromHex, toHex, toBase64 } from "@mysten/sui/utils";
 import { base64UrlSafeEncode } from "./convert";
-import { BcsReader } from "@mysten/bcs";
+import { BcsReader,BcsType } from "@mysten/bcs";
+import { ProfileCreated, } from "./suiTypes";
 import { suiClient } from "@/contracts";
 
 export const Vector_Address = bcs.vector(bcs.Address);
@@ -18,25 +19,10 @@ const BLOB_ID = bcs.u256().transform({
 });
 
 //===============================event type=======================
-export type ProfileCreated = {
-    profile_address : string,
-    sender : string,
-};
 
-type FileBlob ={
-    file_id : string,
-    blob_id : string,
-    start : string,
-    end : number,
-    mime_type : number,
-}
 
-export type FileBlobAddResult = {
-    fbo_ids : string[],
-    blobs : FileBlob[],
-    count : number,
-    sender : number;
-}
+
+
 /**
  * 
 public struct FileBlobCreated has copy,drop{
@@ -48,7 +34,7 @@ public struct FileBlobCreated has copy,drop{
 
 
 export const ID = bcs.struct('ID',{
-    bytes : Address,
+    bytes : bcs.Address,
 })
 export const UID = bcs.struct('UID',{
     id : ID
@@ -106,17 +92,63 @@ public struct Profile has key ,store{
     file_ids : vector<u256>,
 }
  */
+export const SUI = bcs.struct('SUI',{});
 
-export const  Balance = bcs.struct('Balance',{
-    value : bcs.u64(),
-})
+export function Balance<K>(v: K) {
+    return bcs.struct("Table<${K.name}>", {
+        value : bcs.u64(),
+    });
+}
+
+/**
+ * public struct Profile has key ,store{
+    id : UID,
+    owner : address,
+    balance : Balance<SUI>,
+    file_ids : vector<u256>,
+}
+ */
 export const Profile = bcs.struct('Profile',
 {
     id : UID,
     owner : Address,
-    balance : Balance,
+    balance : Balance(SUI),
     file_ids : bcs.vector(bcs.u256())
 });
 
+
+export const FeeConfig = bcs.struct('FeeConfig',{
+    contract_walrus_fee : bcs.u64(),
+    contract_image_fee : bcs.u64(),
+    walrus_kb_fee : bcs.u64()
+});
+
+
+export function Table<K, V>(K: BcsType<K>, V: BcsType<V>) {
+    return bcs.struct("Table<${K.name}, ${V.name}>", {
+        id : UID,
+        size : bcs.u64(),
+    });
+}
+
+/**
+ * public struct Table<phantom K: copy + drop + store, phantom V: store> has key, store {
+    /// the ID of this table
+    id: UID,
+    /// the number of key-value pairs in the table
+    size: u64,
+}
+ */
+
+export const  Storage = bcs.struct('Storgage',{
+    id : UID,
+    manager : Address,
+    balance : Balance(SUI),
+    feeConfig : FeeConfig,
+    //owner => profile address
+    profile_map : Table(Address,Profile),
+    //file hash => FieleBlobObject id
+    file_blob_map : Table(bcs.u256(),Address)
+});
 
 

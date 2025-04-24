@@ -70,7 +70,7 @@ export default  function ImageFileUpload(props:{fileUrl:string, setFileUrl: (url
   }
 
   const addFileOnSui = async function(profileId : string, fileInfo : FileInfo ){
-    const tx = getAddFileTx( fileInfo.hash);
+    const tx = getAddFileTx(owner, fileInfo.hash,fileInfo.size);
     const ret = await signAndExecuteTransaction({transaction:tx}, add_file_callback);
     console.log("addFileOnSui ret:",ret);
     return ret;

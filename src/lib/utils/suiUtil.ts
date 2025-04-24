@@ -6,11 +6,11 @@ import { Transaction,TransactionArgument ,TransactionObjectArgument} from "@myst
 import config from '@/config/config.json'
 import { fromBase64, toBase64,fromBase58, toHex } from "@mysten/sui/utils";
 import bs58 from 'bs58';
-import { ProfileCreated,FileBlob,FileBlobObject, ID } from "./suiParser";
+import { FileBlob,FileBlobObject, ID } from "./suiParser";
 import { GasCostSummary } from "@mysten/sui/client";
 import { ContentType } from "./content";
 import { blobId_to_u256 } from "./convert";
-import { Profile } from "./suiParser";
+import * as sp from "./suiParser";
 import { bcs, toHEX } from "@mysten/bcs";
 import { Keypair } from "@mysten/sui/cryptography";
 import { hash_to_u256 } from "@/lib/utils/convert";
@@ -238,7 +238,7 @@ export async  function queryFileBobInfo(suiClient:SuiClient, profileId:string,se
      const ids : string[] = []; 
      console.log(obj);
      if(obj.data && obj.data.bcs && obj.data.bcs.dataType == 'moveObject'){
-        let p = Profile.parse(fromBase64(obj.data.bcs.bcsBytes))
+        let p = sp.Profile.parse(fromBase64(obj.data.bcs.bcsBytes))
         console.log('begin parse');
         let blobs = p.file_ids;
         blobs.forEach((id)=> ids.push(id));

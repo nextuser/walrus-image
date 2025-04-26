@@ -153,7 +153,8 @@ export function getFileBlob(hash : string)
     
     let fileBlob = getFileBlob(fileInfo.hash);
     if(fileBlob == null){
-        return [getExtTypeByContentType(fileInfo.content_type),getImageUrl(request,fileInfo.hash)];
+        const ext = getExtTypeByContentType(fileInfo.content_type);
+        return [ext,getImageUrl(request,fileInfo.hash,ext)];
     }
     if(fileBlob.status.on_walrus){
         return ['blob',getBlobOrTarUrl(request,fileBlob)]

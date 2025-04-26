@@ -11,7 +11,7 @@ function getType(fileInfo:FileInfo){
     if(status == null){
         return getExtTypeByContentType(fileInfo.content_type);
     }
-    if(status.status.uploaded){
+    if(status.status.on_walrus){
         return 'blob'
     } else{
         return 'tar'

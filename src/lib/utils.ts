@@ -19,9 +19,9 @@ export function generateHash(buffer: Buffer): string {
     return hash.digest('hex');
 }
 
-export function getImageUrl(request : Request, fileName : string) : string{
+export function getImageUrl(request : Request, fileName : string,ext:string) : string{
   let site_url = getSiteUrl(request);
-  const fileUrl = `${site_url}/images/${fileName}`;
+  const fileUrl = `${site_url}/images/${fileName}.${ext}`;
   return fileUrl;
 }
 

@@ -21,17 +21,13 @@ export async function GET(
   const decodedFilePath = decodeURIComponent(filepath);
   const encodeFileURI = encodeURIComponent(filepath);
 
-    
-  
   const hash = getHash(filepath);
   const blobInfo = getFileBlob(hash)
   
   if(blobInfo == null){
       // 1. 检查 /public/uploads
     const uploadsPath = path.join(UPLOAD_DIR, decodedFilePath);
-  
     if(fs.existsSync(uploadsPath)){
-
       return NextResponse.redirect(
           new URL(getUploadUrl(encodeFileURI), request.url),
           { 
@@ -40,9 +36,10 @@ export async function GET(
     } 
     else{
         return NextResponse.json(
-          {message:`not found file ${uploadsPath}`},
+          {message:`not found file ${decodedFilePath}`},
           { status: 400 }
         );
+        console.error('fail to find file of :',uploadsPath);
    }
   }
   

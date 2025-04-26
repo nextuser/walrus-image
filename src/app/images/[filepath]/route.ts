@@ -4,9 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import { UPLOAD_DIR,getUploadUrl } from '@/lib/utils/dirs';
 import { getFileBlob } from '@/lib/utils/globalData';
-import { getBlobOrTarUrl ,getHash } from '@/lib/utils/db';
-import { log } from 'console';
-
+import { getBlobOrTarUrl } from '@/lib/utils';
+import { getHash } from '@/lib/utils';
 type Context = {
   params: Promise<{
     filepath: string;

@@ -1,44 +1,75 @@
+'use client'
 import { blob } from "stream/consumers";
 import { getExtTypeByContentType } from "@/lib/utils/content";
-import { headers } from "next/headers";
 import Link from 'next/link';
-import { getFiles } from "@/lib/utils/globalData";
 import { FileInfo } from "@/lib/utils/types";
-import { getFileBlob } from "@/lib/utils/globalData";
-function getType(fileInfo:FileInfo){
+//import { getFileBlob } from "@/lib/utils/globalData";
+import { getFileBlobsFor,getProfile, getStorage } from "@/lib/utils/suiUtil";
+import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
+import { useEffect,useState } from "react";
+import { useStorage } from "@/app/storage_provider";
+import { FileBlobType } from "@/lib/utils/suiParser";
+import { u256_to_hash } from "@/lib/utils/convert";
+import { FileUrl } from "@/lib/utils/types";
+// function getType(fileInfo:FileInfo){
     
-    let status = getFileBlob(fileInfo.hash);
-    if(status == null){
-        return getExtTypeByContentType(fileInfo.content_type);
-    }
-    if(status.status.uploaded){
-        return 'blob'
-    } else{
-        return 'tar'
-    }
-}
+//     let status = getFileBlob(fileInfo.hash);
+//     if(status == null){
+//         return getExtTypeByContentType(fileInfo.content_type);
+//     }
+//     if(status.status.uploaded){
+//         return 'blob'
+//     } else{
+//         return 'tar'
+//     }
+// }
 
-export default async  function Page() {
+// // 获取主机和端口信息
+// const getHostAndPort = () => {
+//     const { hostname, port } = window.location;
+//     return {
+//         host: hostname,
+//         port: port || (window.location.protocol === 'https:' ? '443' : '80')
+//     };
+// };
+export default function Page() {
 
-      // 通过 headers() 获取请求头信息
-   const headersList = await headers();
-   const host = headersList.get("host")!; // "www.s.com:8080"
-   const protocol = headersList.get("protocol") || "http";
-   console.log("protocol host:" ,protocol,host);
-
-   const files = getFiles();
-   ///console.log(headersList);
+    // 使用示例
+   const account = useCurrentAccount();
+   const storage = useStorage();
+   const suiClient = useSuiClient();
+   const [urls ,setUrls] = useState<FileUrl[]>([]);
+   
+   
+   useEffect(()=>{
+        if(!account || !storage) {
+            return;
+        }
+        const parentId = storage.profile_map.id.id.bytes
+        fetch( "/api/files_for?owner=" + encodeURIComponent(account.address),{
+            method : 'GET',
+        }).then((rsp)=>{
+            if(!rsp.ok) {
+                setUrls([]);
+                return;
+            }
+            rsp.json().then((value)=>{
+                setUrls(value.data as FileUrl[])
+            })
+        })
+  
+   },[account]);
 
     return (
         <div>
             <ul>{ 
-                    files.map( (fileInfo:FileInfo)=>{
-                    const type = getType(fileInfo)
-                    return (<li key={fileInfo.hash}>
+                    urls.map( (fileUrl:FileUrl)=>{
+                    const hash = fileUrl.name;
+                    return (<li key={hash}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
-                        href={`${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`} >
-                            {fileInfo.hash}
-                        </Link> <label>{type}</label>
+                        href={fileUrl.url} >
+                            {hash}
+                        </Link> <label>{fileUrl.type}</label>
                     </li>)
                     })
                 }

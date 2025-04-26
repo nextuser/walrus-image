@@ -70,6 +70,7 @@ export const FileBlobObject = bcs.struct('FileBlobObject',{
     file_blob : FileBlob
 })
 
+
 /*
 public struct BlobInfo has store,copy,drop{
     blob_id : u256,
@@ -157,5 +158,10 @@ export const  Storage = bcs.struct('Storgage',{
     //file hash => FieleBlobObject id
     file_blob_map : Table(bcs.u256(),Address)
 });
+
+
+export type StorageType = ReturnType<typeof Storage.parse>;
+export type FeeConfigType = ReturnType<typeof FeeConfig.parse>;
+export type FileBlobType = ReturnType<typeof FileBlob.parse>;
 
 

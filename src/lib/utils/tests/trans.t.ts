@@ -112,8 +112,8 @@ function getTestFileBlobInfo(blobId : string, hash : string){
     let fb :FileBlobInfo= {
         hash ,
         status :{
-            uploaded : true,
-            uploadInfo : {
+            on_walrus : true,
+            walrus_info : {
                 blobId 
             }
         },
@@ -160,7 +160,7 @@ function test_get_storage(){
             const fee = calcuate_fee(st.feeConfig,size);
             console.log('calcuate_fee size of ',size , ' fee is',fee / 1e9);
             getProfile(sc,st.profile_map.id.id.bytes,client_addr)
-                .then((v:Profile|undefined)=>{ 
+                .then((v:Profile|undefined|null)=>{ 
                     if(v){
                         console.log('file_ids', v.file_ids);
                         console.log('get dynamic profile',v.balance)

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {log} from '@/lib/utils/logger' 
-import { UploadedBlobInfo} from '@/lib/utils/types'
+import { WalrusInfo} from '@/lib/utils/types'
 export interface UploadBlobConfig {
     initialEpochs?: string;
     initialPublisherUrl?: string;
@@ -41,7 +41,7 @@ export const DEFAULT_CONFIG: Required<UploadBlobConfig> = {
 
 
 const MAX_EPOCHS=1;
-export async function uploadBlob(buffer: Buffer ) : Promise<UploadedBlobInfo>{
+export async function uploadBlob(buffer: Buffer ) : Promise<WalrusInfo>{
     try {
         const publisherUrl = DEFAULT_CONFIG.initialPublisherUrl;
 
@@ -62,7 +62,7 @@ export async function uploadBlob(buffer: Buffer ) : Promise<UploadedBlobInfo>{
 
         const info = await response.json();
         log("upload info : ",info);
-        let blobInfo: UploadedBlobInfo;
+        let blobInfo: WalrusInfo;
 
         if ('alreadyCertified' in info) {
             blobInfo = {

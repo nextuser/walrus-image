@@ -1,6 +1,5 @@
-import { getSiteUrl } from "@/lib/utils";
 import { getSigner } from "./local_key";
-import {getProfileId, queryFileBobInfo,getCreateProfileTx, queryFileInfoObjects} from "../suiUtil"
+import {getProfileId, getCreateProfileTx, queryFileInfoObjects} from "../suiUtil"
 import { getServerSideSuiClient } from "./suiClient";
 import { Keypair } from "@mysten/sui/cryptography";
 import config from "@/config/config.json";

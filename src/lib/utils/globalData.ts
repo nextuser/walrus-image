@@ -3,7 +3,8 @@ import processFiles from '@/lib/utils/task';
 import { FileBlobInfo,FileInfo } from './types';
 import { ContentType } from './content';
 import { fstat ,promises as fsp} from 'fs';
-
+import {getExtTypeByContentType} from '@/lib/utils/content'
+import {getBlobOrTarUrl,getImageUrl} from '@/lib/utils'
 type UserProfile ={
    fileIds : string[];
 }
@@ -34,6 +35,14 @@ export interface GlobalData {
     };
   }
 
+  export function getFileHashesFor(owner :string) : string[]{
+     let result : string[] = []; 
+     let userProfile = globalData.profileMap.get(owner)
+     if(!userProfile ){ 
+        return result;
+     }
+     return userProfile.fileIds;
+  }
   export function getFiles() :Array<FileInfo>{
       return Array.from(global.globalData.fileMap.values());
   }
@@ -137,5 +146,18 @@ export function getFileBlob(hash : string)
     if (global.dataFetchInterval) {
       clearInterval(global.dataFetchInterval);
       global.dataFetchInterval = undefined;
+    }
+  }
+
+  export function getTypeUrl(request : Request,fileInfo:FileInfo):[string,string] {
+    
+    let fileBlob = getFileBlob(fileInfo.hash);
+    if(fileBlob == null){
+        return [getExtTypeByContentType(fileInfo.content_type),getImageUrl(request,fileInfo.hash)];
+    }
+    if(fileBlob.status.on_walrus){
+        return ['blob',getBlobOrTarUrl(request,fileBlob)]
+    } else{
+        return ['tar',getBlobOrTarUrl(request,fileBlob)]
     }
   }

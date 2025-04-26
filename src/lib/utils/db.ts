@@ -1,16 +1,15 @@
 import { FileRange, UploadStatus } from './types';
 import {SuiClient } from '@mysten/sui/client';
-import { FileBlobInfo,UploadedBlobInfo } from './types';
+import { FileBlobInfo,WalrusInfo } from './types';
 import fs from 'fs';
 import * as fsp from 'fs/promises';
 import path from 'path';
 import tar from 'tar-stream';
 import { TAR_DIR } from './dirs';
-import {getContentType,registerFileBobInfo} from '@/lib/utils/globalData'
-import {uploadBlob,downloadBlob} from '@/lib/utils/blobUtil';
+import {registerFileBobInfo} from '@/lib/utils/globalData'
+import {uploadBlob} from '@/lib/utils/blobUtil';
 import { log} from '@/lib/utils/logger'
-import { registerToDelete} from '@/lib/utils/globalData'
-import { getAddBlobTx } from './suiUtil';
+import { getTarPath } from '../utils';
 export function moveToTarDir(tarFile :string) : string{
     let blobId :string =  generateId();
     let dest = path.join(TAR_DIR,blobId);
@@ -38,47 +37,15 @@ async function moveFile(sourcePath: string, destinationPath: string): Promise<vo
   }
 }
 
-
-
-
-
-
-function getTarUrl(protocol:string,host:string,tarfile : string,contentType : number, range:FileRange){
-
-  return `${protocol}://${host}/tar/$tarfile}/?start=${range.start}&end=${range.end}&contentType=${contentType}`;
-}
-export function getBlobTarUrl(protocol:string,host:string,fb: FileBlobInfo):string{
-    if(!fb.status.uploaded) {
-       return getTarUrl( protocol,host,fb.status.tarfile,fb.contentType,fb.range)
-    }
-    const blobId = encodeURIComponent(fb.status.uploadInfo.blobId);
-    return  `${protocol}://${host}/blobs?blobId=${blobId}&start=${fb.range.start}&end=${fb.range.end}&contentType=${fb.contentType}`
-}
-
-
-export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo):string{
-  
-  const protocol = request.headers.get('x-forwarded-proto') || 'http';
-  const host = request.headers.get('host') || '';
-  if(!blobInfo){
-    return `${protocol}://${host}/tar/not_found`
-  }
-  return  getBlobTarUrl(protocol,host,blobInfo)
-}
-
-export function getTarPath(tarfile : string){
-  return path.join(process.cwd(),"tars", tarfile);
-}
 export async function saveBlob(tarfile :string) : Promise<UploadStatus | null> {
     const filePath = getTarPath(tarfile);
     return fsp.readFile(filePath).then( (buffer:Buffer)=>{
 
-      return uploadBlob(buffer).then((blobInfo : UploadedBlobInfo)=>{
+      return uploadBlob(buffer).then((blobInfo : WalrusInfo)=>{
         
         let status :UploadStatus = {
-          uploaded : true,
-          uploadInfo : blobInfo
-
+          on_walrus : true,
+          walrus_info : blobInfo
         }
         log("saveBlob" ,tarfile,"status:",status);
         return status
@@ -86,7 +53,7 @@ export async function saveBlob(tarfile :string) : Promise<UploadStatus | null> {
         log("saveBlob:upload fail reason:",reason);
         let status :UploadStatus = {
           tarfile,
-          uploaded:false
+          on_walrus:false
         }
         return status;
       });
@@ -109,7 +76,6 @@ export  function recordFileBlobInfo (
     range : fileRange
   }
   //console.log(`saveBlobInfoToDB hash=${hash} fb=${fb}`);
-
   registerFileBobInfo(hash,fb);
   return fb;
   
@@ -144,22 +110,5 @@ function generateId(length: number = 16): string {
     return id;
   }
   
-// ${hash}.jpg   => ${hash}
-export function getHash(fileName : string){
-  let index = fileName.indexOf(".");
-  if(index == -1){
-    return fileName;
-  }
-  return fileName.substring(0, index);
-}
-  //todo  这个用作参考，后面会删除
-  // const { storeBlob ,aggregatorUrl} = useUploadBlob()
 
-  // const storeFile = async function (file:File | string) : Promise<string>{
-    
-  //    // 1. 上传到 Walrus
-  //    const blobInfo = await storeBlob(file)
-  //    const url = `${aggregatorUrl}/v1/blobs/${blobInfo.blobId}`
-  //    console.log("store file ,url=",url);
-  //    return url;
-  // }
+  

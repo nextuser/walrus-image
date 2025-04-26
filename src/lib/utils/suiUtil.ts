@@ -17,6 +17,7 @@ import { u256_to_blobId,u256_to_hash,
 import { Keypair } from "@mysten/sui/cryptography";
 import { FileBlob,FileBlobAddResult,Profile,
         DynamicField,Struct,Address } from "./suiTypes";
+
 /**
  * 
 entry fun add_file(storage : &mut Storage,
@@ -43,7 +44,7 @@ export  function getAddFileTx(owner :string,hash : string,size :number){
     return tx;
 } 
 
-export function getRechargeTx(profileId : string,amount_mist : bigint){
+export function getRechargeTx(profileId : string,amount_mist : number ){
     const tx = new Transaction();
     let new_coin = tx.splitCoins(tx.gas,[amount_mist]);
     tx.moveCall({
@@ -124,15 +125,12 @@ entry fun add_file_blob(
     return tx;
 }
 
-export type StorageType = ReturnType<typeof parser.Storage.parse>;
-export type FeeConfigType = ReturnType<typeof parser.FeeConfig.parse>;
-
-export function calcuate_fee(  config : FeeConfigType, size : number) : number{
+export function calcuate_fee(  config : parser.FeeConfigType, size : number) : number{
     let kbs = size >> 10;
     return Number(config.contract_cost) + Number(config.contract_fee)  + kbs * Number(config.wal_per_kb) * Number(config.price_wal_to_sui_1000) /1000 
 }
 
-export async function  getStorage(sc:SuiClient) : Promise<StorageType | undefined>{
+export async function  getStorage(sc:SuiClient) : Promise<parser.StorageType | undefined>{
     const obj = await sc.getObject({ id : config.storage,options:{showContent:true,showBcs:true}});
 
     if(obj.data?.bcs?.dataType == 'moveObject'){
@@ -147,8 +145,10 @@ export async function  getStorage(sc:SuiClient) : Promise<StorageType | undefine
 
 }
 
-
-
+export function isBalanceEnough(storage:parser.StorageType,profile:Profile , size : number){
+   let fee = calcuate_fee(storage.feeConfig, size)
+   return Number(profile.balance) >= fee;
+}
 // export async function createProfile(suiClient:SuiClient,signer : Keypair) : Promise<string | null>{
 //    console.log('createProfile begin');
 //    const tx = getCreateProfileTx(suiClient,);
@@ -204,9 +204,8 @@ export async function  getProfileId(suiClient :SuiClient, owner :string) : Promi
 
 
 export async function getFileBlobsFor(suiClient : SuiClient,
-                                owner:string): Promise<FileBlobInfo[]>{
+                                owner:string): Promise<parser.FileBlobType[]>{
                                 
-    const fbs : FileBlobInfo[] = [];
     const tx = new Transaction();
     tx.moveCall({
         target : `${config.pkg}::file_blob::get_file_blobs`,
@@ -239,34 +238,22 @@ export async function getFileBlobsFor(suiClient : SuiClient,
     }
     console.log('get object ids ',fb_ids);
     if(fb_ids.length == 0){
-        
         console.log('get profile images ids', rsp);
-        return fbs; 
+        return []; 
     }
+    return getFileObjectsByIds(suiClient,fb_ids);
+}
+
+async function getFileObjectsByIds(suiClient:SuiClient,fb_ids : string[]): Promise<parser.FileBlobType[]>{
     let objectRsps = await suiClient.multiGetObjects({
         ids:fb_ids,
         options:{showBcs:true}
     })
-
+    let fbs : parser.FileBlobType[] = [];
     for(let o of objectRsps){
         if(o.data?.bcs?.dataType == 'moveObject'){
             let fbo = parser.FileBlobObject.parse(fromBase64(o.data.bcs.bcsBytes)).file_blob;
-            let fb :FileBlobInfo = {
-                hash : u256_to_hash(BigInt(fbo.file_id)),
-                status :{
-                  uploaded : true,
-                  uploadInfo : {
-                    blobId : u256_to_blobId(BigInt(fbo.blob_id)),
-                  }
-                },
-                contentType:fbo.mime_type ,
-                range:{
-                  start :fbo.start,
-                  end : fbo.end,
-                }
-            }
-            console.log('parse succ fbo ',fbo, ' convert to fb ', fb);
-            fbs.push(fb);
+            fbs.push(fbo);
         }
     }
     return fbs;
@@ -356,9 +343,10 @@ async function dryrun(suiClient : SuiClient,tx : Transaction):Promise<DryRunTran
 /**
  * 添加File  , 在server 端
  */
-export async function addFile(suiClient : SuiClient,signer: Keypair,owner: string, hash : string ,size : number): Promise<bigint>{
+export async function addFile(suiClient : SuiClient,signer: Keypair,
+                            owner: string, hash : string ,size : number): Promise<bigint>{
     if(signer.getPublicKey().toSuiAddress() != config.operator){
-        console.log('operator error: ',config.operator, ' manager:',signer.getPublicKey().toSuiAddress);
+        console.error('operator error: ',config.operator, ' manager:',signer.getPublicKey().toSuiAddress);
         return 0n;
     }
     let tx = getAddFileTx(owner ,hash,size);
@@ -425,47 +413,50 @@ export async function addFileBlob(suiClient:SuiClient,blobId:string,blobs :FileB
 public fun get_file_blobs(profile : &Profile)  
  * @param suiClient
  */
-export async  function queryFileBobInfo(suiClient:SuiClient, profileId:string,sender : string){
+// export async  function queryFileBobInfo(suiClient:SuiClient, profileId:string,sender : string){
 
-     let obj = await suiClient.getObject({
-       id :profileId,
-       options:{showBcs:true,showContent:true}
-     })
-     const ids : string[] = []; 
-     console.log(obj);
-     if(obj.data && obj.data.bcs && obj.data.bcs.dataType == 'moveObject'){
-        let p = sp.Profile.parse(fromBase64(obj.data.bcs.bcsBytes))
-        console.log('begin parse');
-        let blobs = p.file_ids;
-        blobs.forEach((id)=> ids.push(id));
-     }
+//      let obj = await suiClient.getObject({
+//        id :profileId,
+//        options:{showBcs:true,showContent:true}
+//      })
+//      const ids : string[] = []; 
+//      console.log(obj);
+//      if(obj.data && obj.data.bcs && obj.data.bcs.dataType == 'moveObject'){
+//         let p = sp.Profile.parse(fromBase64(obj.data.bcs.bcsBytes))
+//         console.log('begin parse');
+//         let blobs = p.file_ids;
+//         blobs.forEach((id)=> ids.push(id));
+//      }
      
-     if(obj.data && obj.data.content && obj.data.content.dataType == 'moveObject'){
-        console.log('fileBlobInfo fields',obj.data.content.fields);
-     }
-     console.log('blob ids:',ids);
-     let objs = await suiClient.multiGetObjects({ids})
-     for(let blobRsp of objs){
-        if(blobRsp.data && blobRsp.data.bcs && blobRsp.data.bcs.dataType == 'moveObject'){
-            let o = parser.FileBlobObject.parse(fromBase64(blobRsp.data.bcs.bcsBytes))
-            console.log('file blob',o.file_blob.blob_id, o.file_blob);
-        }
-     }
-}
+//      if(obj.data && obj.data.content && obj.data.content.dataType == 'moveObject'){
+//         console.log('fileBlobInfo fields',obj.data.content.fields);
+//      }
+//      console.log('blob ids:',ids);
+//      let objs = await suiClient.multiGetObjects({ids})
+//      for(let blobRsp of objs){
+//         if(blobRsp.data && blobRsp.data.bcs && blobRsp.data.bcs.dataType == 'moveObject'){
+//             let o = parser.FileBlobObject.parse(fromBase64(blobRsp.data.bcs.bcsBytes))
+//             console.log('file blob',o.file_blob.blob_id, o.file_blob);
+//         }
+//      }
+// }
 
-export async function getFileBlobs(suiClient: SuiClient,ids : string[]){
-    let objs = await suiClient.multiGetObjects({ids})
-    for(let blobRsp of objs){
-       if(blobRsp.data && blobRsp.data.bcs && blobRsp.data.bcs.dataType == 'moveObject'){
-           let o = parser.FileBlobObject.parse(fromBase64(blobRsp.data.bcs.bcsBytes))
-           console.log('getFileBlobs: file blob',o.file_blob.blob_id, o.file_blob);
-       }
-    }
-}
+// export async function getFileBlobs(suiClient: SuiClient,file_ids : string[]){
+//     let objs = await suiClient.multiGetObjects({ids})
+//     let result = [];
+//     for(let blobRsp of objs){
+//        if(blobRsp.data && blobRsp.data.bcs && blobRsp.data.bcs.dataType == 'moveObject'){
+//            let o = parser.FileBlobObject.parse(fromBase64(blobRsp.data.bcs.bcsBytes))
+//            console.log('getFileBlobs: file blob',o.file_blob.blob_id, o.file_blob);
+//            result.push(o.file_blob);
+//        }
+//     }
+//     return result;
+// }
 
 export async function getProfile(sc : SuiClient, 
                                 parentId : string, 
-                                owner : string) : Promise<Profile|undefined>
+                                owner : string) : Promise<Profile|null>
 {
     const rsp = await sc.getDynamicFieldObject({
         parentId,
@@ -483,15 +474,9 @@ export async function getProfile(sc : SuiClient,
     } else{
         console.log('no data for owner:',owner);
     }
+    return null;
 }
    
-    
-
-
-
-
-
-
 export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:string,sender : string){
 
     return suiClient.getObject({
@@ -511,3 +496,5 @@ export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:strin
     })
    
 }
+
+

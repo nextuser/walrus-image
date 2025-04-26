@@ -9,6 +9,8 @@ import { addFile ,addFileId,getFileInfo,hasFile} from '@/lib/utils/globalData';
 import { getServerSideSuiClient } from '@/lib/utils/tests/suiClient';
 import { FileInfo } from '@/lib/utils/types';
 import { startDataCollection } from '@/lib/utils/globalData';
+import * as su from '@/lib/utils/suiUtil'
+import { getSigner } from '@/lib/utils/tests/local_key';
 async function downloadImage(imageUrl: string): Promise<Buffer> {
   console.log("downloadImage:",imageUrl);
   const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
@@ -79,11 +81,13 @@ export async function POST(request: Request) {
         console.log("upload image file:", filePath);
         console.log("add file hash , contentype, filename", hash,contentType,fileName);
         addFile(fileInfo);
+        const signer = getSigner();
+        su.addFile(suiClient,signer,owner,fileInfo.hash,fileInfo.size);
         addFileId(owner,hash);        
 
       } else{
         addFileId(owner,hash);
-        console.log("file uploaded,reuse it", fileName);
+        console.log("file on walrus,reuse it", fileName);
       }
       
       const fileUrl = getImageUrl(request,`${fileName}`);

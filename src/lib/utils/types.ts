@@ -11,19 +11,21 @@ export interface FileInfo {
 }
 
 
-export interface UploadedBlobInfo {
+export interface WalrusInfo {
   blobId: string;
   endEpoch?: number;
   suiRef?: string;
   status?: string;
 }
 
+type FileStatus = 'site' | 'walrus' | 'sui'
+
 export   type UploadStatus =   {
   tarfile : string,
-  uploaded : false,
+  on_walrus : false,
 } | {
-  uploaded : true,
-  uploadInfo : UploadedBlobInfo,
+  on_walrus : true,
+  walrus_info : WalrusInfo,
 };
 
 export interface FileBlobInfo{
@@ -33,5 +35,10 @@ export interface FileBlobInfo{
     range : FileRange;
 }
 
+export interface FileUrl{
+  name : string ,
+  url : string,
+  type : string,
+}
 
 

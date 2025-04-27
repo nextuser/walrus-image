@@ -17,8 +17,6 @@ export default function UploadPage() {
     const [imageUrl ,setImageUrl ] = useState('');
     const wallet = useCurrentWallet();
     const acc  = useCurrentAccount();
-
-    
     const [storage , setStorage ] = useState<StorageType>();
     const [profile,setProfile] = useState<Profile|null|undefined>(undefined);
     const [profile_balance ,setProfileBalance ] = useState(0)
@@ -77,7 +75,6 @@ export default function UploadPage() {
               //profile balance changed
               queryProfile();
             }
-            
             console.log('----------create profile onSuccess ,not find ',result);
         },
         onError: (error:any) => {
@@ -116,7 +113,8 @@ export default function UploadPage() {
             storage={storage} profile={profile} owner={acc.address}/>
         <div>
         {imageUrl && 
-        <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href={imageUrl}> {imageUrl}</Link>
+        <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href={imageUrl}
+                target ='_blank'> {imageUrl}</Link>
         }
         </div>
         <div>

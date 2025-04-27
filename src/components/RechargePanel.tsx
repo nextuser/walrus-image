@@ -64,7 +64,7 @@ export   function RechargePanel(
     const percents = [0,25,50,75,100];
     return <div>        
     <div className='flex justify-start w-400 overflow-clip'>
-    
+    <label>MAX {props.max/1e9} SUI</label>
     <NumberInput 
       name="setRechargAmount"
       stepper={0.01}

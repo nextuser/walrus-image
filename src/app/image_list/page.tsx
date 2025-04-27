@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getFiles } from "@/lib/utils/globalData";
 import { FileInfo } from "@/lib/utils/types";
 import { getFileBlob } from "@/lib/utils/globalData";
+import CopyButton from "@/components/CopyButton";
 function getType(fileInfo:FileInfo){
     
     let status = getFileBlob(fileInfo.hash);
@@ -34,12 +35,14 @@ export default async  function Page() {
             <ul>{ 
                     files.map( (fileInfo:FileInfo,index)=>{
                     const type = getType(fileInfo)
-                    return (<li key={index}>
+                    const imageUrl = `${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`;
+                    return (<li key={fileInfo.hash + String(index)}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
                         target='_blank'
-                        href={`${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`} >
+                        href={imageUrl} >
                             {fileInfo.hash}
-                        </Link> <label>{type}</label>
+                        </Link> 
+                        <CopyButton copy_value={imageUrl} display={type} size={12} fontSize={12} className="flex inline-flex"></CopyButton>
                     </li>)
                     })
                 }

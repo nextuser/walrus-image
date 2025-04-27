@@ -37,8 +37,8 @@ public struct FileAdded has copy,drop{
     file_hash : u256,
     owner : address,
     size : u32,
+    is_new : bool,
     cost : u64,
-
 }
 /**
 保证每个用户一个profile，方便遍历所有profile
@@ -221,6 +221,16 @@ entry fun add_file(storage : &mut Storage,
                     ctx : & TxContext){
     assert!(storage.manager == ctx.sender(),ERROR_ADD_FILE_SENDER_SHOULD_BE_MANAGER);
     let  profile : &mut Profile = storage.profile_map.borrow_mut(owner);
+    if(profile.file_ids.contains(&file_id)){
+        emit(FileAdded{
+            file_hash : file_id,
+            owner ,
+            size ,
+            is_new : false,
+            cost : 0,
+        });
+        return
+    };
     profile.file_ids.push_back(file_id);
     let fee = calcuate_fee(&storage.feeConfig,size as u64 );
     storage.balance.join(profile.balance.split(fee));
@@ -228,6 +238,7 @@ entry fun add_file(storage : &mut Storage,
         file_hash : file_id,
         owner ,
         size ,
+        is_new : true,
         cost : fee,
     });
 }

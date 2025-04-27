@@ -17,6 +17,7 @@ import { u256_to_blobId,u256_to_hash,
 import { Keypair } from "@mysten/sui/cryptography";
 import { FileBlob,FileBlobAddResult,Profile,
         DynamicField,Struct,Address } from "./suiTypes";
+import { profile } from "console";
 /**
  * 
 entry fun add_file(storage : &mut Storage,
@@ -43,13 +44,15 @@ export  function getAddFileTx(owner :string,hash : string,size :number){
     return tx;
 } 
 
-export function getRechargeTx(profileId : string,amount_mist : number ){
+export function getRechargeTx(owner : string,amount_mist : number ){
     const tx = new Transaction();
+    console.log(`file_blob::recharge(${config.storage}, ${owner}`)
     let new_coin = tx.splitCoins(tx.gas,[amount_mist]);
     tx.moveCall({
         target:`${config.pkg}::file_blob::recharge`,
-        arguments:[tx.object(profileId), new_coin]
+        arguments:[tx.object(config.storage),tx.pure.address(owner), new_coin]
     })
+    tx.setGasBudget(2e6);
     return tx;
 }
 

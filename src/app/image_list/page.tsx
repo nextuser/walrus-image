@@ -32,9 +32,9 @@ export default async  function Page() {
     return (
         <div>
             <ul>{ 
-                    files.map( (fileInfo:FileInfo)=>{
+                    files.map( (fileInfo:FileInfo,index)=>{
                     const type = getType(fileInfo)
-                    return (<li key={fileInfo.hash}>
+                    return (<li key={index}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
                         target='_blank'
                         href={`${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`} >

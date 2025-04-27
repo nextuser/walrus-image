@@ -17,6 +17,7 @@ import { getProfile,getStorage ,calcuate_fee} from '@/lib/utils/suiUtil';
 //import { FileAdded, ProfileCreated } from '@/lib/utils/suiParser';
 import {NumberInput} from '@/components/NumberInput'
 import { Input } from './ui/input';
+import { RechargePanel } from './RechargePanel';
 
 export default  function ImageFileUpload(
   props:{fileUrl:string, 
@@ -37,9 +38,12 @@ export default  function ImageFileUpload(
   const [profileId ,setProfileId] = useState<string|undefined>();
   const [balance , setBalance] = useState(0);
   const [lack , setLack] = useState(0);
-  const [recharge_amount , set_recharge_amount] = useState(0);
+  
   const suiClient = useSuiClient();
+
+  const [recharge_amount , set_recharge_amount] = useState(0);
   const { mutate: signAndExecuteTransaction }  = useSignAndExecuteTransaction();
+  
   const owner = props.owner;
   const percents = [0,25,50,75,100];
   // const addFileOnSui = async function(fileInfo : FileInfo ){
@@ -89,28 +93,7 @@ export default  function ImageFileUpload(
     }
 };
   const MIN_AMOUNT = 1E7;
-  const charge_callback = "";
-  const rechargeToProfile = async (profileId : string,amount : number) =>{
-     amount = amount < MIN_AMOUNT ? MIN_AMOUNT : amount;
-     let tx = getRechargeTx(profileId,amount)
-     signAndExecuteTransaction({transaction : tx},{
-       onSuccess : (result)=>{
-         console.log('charge digest ', result.digest);
-         console.log('effect ',result.effects)
-       },
-       onError : (err )=>{
-          console.log("fail to recharge",err)
-       },
-       onSettled :(data,err)=>{
-          if(err){
-            console.log('rechargeBalance settle error',err);
-            return;
-          }
-          console.log('rechargeBalance settle data ',data );
-       }
 
-     });
-  }
   async function uploadFile(imageData:string) :Promise<string | undefined>{
     try {
         setUploading(true);
@@ -182,11 +165,6 @@ export default  function ImageFileUpload(
     }
 };
 
-const rechargeProfile = (e : any)=>{
-   if(props.profile) {
-      rechargeToProfile(props.profile.id.id ,recharge_amount)
-   }
-}
 
 const handleUrlChange = (event:any) => {
   const url = event.target.value;
@@ -304,40 +282,10 @@ const handleUploadUrl = async () => {
       <div>
         <div><label>Need Recharge : {lack/1e9 } SUI</label> </div>
         <div><label>My    Balance : {balance/1e9} SUI</label></div>
-        <div className='flex justify-start'>
-          <NumberInput 
-            name="sellTokenNum"
-            min = {lack}
-            decimalScale = {9}
-            max = {balance}
-            value={recharge_amount} 
-            onValueChange={(v? :number) => set_recharge_amount(Number(v? v:0))} 
-          /> SUI
-        </div>
-        <div>
-          <Input
-            name="sliderBar"
-            type="range" 
-            min={lack}
-            max={balance}
-            disabled={balance < lack}
-            className="px-0 "
-            value={recharge_amount} 
-            onChange={(e:any) => set_recharge_amount(Number(e.target.value))} 
-          />
-        </div>
-        <div className="quick-buttons mx-2">
-          {
-            percents.map((p:number)=>{
-              const m = Math.floor(p * balance / 100);
-              return <Button variant='percent' key={p} disabled={ m < lack} 
-                        onClick={() => set_recharge_amount(m)}>{p}%</Button>
-            })
-          }
-        </div>
-        <Button onClick={rechargeProfile}  disabled = { recharge_amount >= lack}>
-          Recharge 
-        </Button>
+
+        <RechargePanel min={lack} max ={balance} owner={owner} onCharged={ (v? :number) => set_recharge_amount(Number(v? v:0))  }></RechargePanel>
+        
+        
       </div>}
       <DialogClose />
       </DialogContent>

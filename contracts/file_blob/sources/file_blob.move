@@ -61,7 +61,7 @@ public struct Storage has key,store{
     feeConfig : FeeConfig,
     //owner => profile address
     profile_map : Table<address,Profile>,
-    //file hash => FieleBlobObject id
+    //file hash => FileBlobObject id
     file_blob_map : Table<u256,address>
 }
 
@@ -128,7 +128,9 @@ fun create_storage(ctx : &mut TxContext){
             price_wal_to_sui_1000 : PRICE_WAL_TO_SUI_1000
         },
         balance : balance::zero(),
+        //file_id => address of FileBlob
         file_blob_map : table::new<u256,address>(ctx),
+        //owner => profile
         profile_map : table::new<address,Profile>(ctx),
     };
 
@@ -162,7 +164,8 @@ public fun calcuate_fee(  config : &FeeConfig, size : u64) : u64{
     config.contract_fee + config.contract_cost  +  wal_cost 
 }
 
-public fun recharge(profile : &mut Profile, coin : Coin<SUI>) : u64{
+public fun recharge(storage : &mut Storage ,owner : address, coin : Coin<SUI>) : u64{
+    let profile = storage.profile_map.borrow_mut(owner);
     profile.balance.join(coin.into_balance());
     profile.balance.value()
 }
@@ -190,9 +193,6 @@ entry fun try_get_profile(storage:&Storage,sender : address) : Option<address>{
         option::none()
     }
 }
-
-
-
 
 
 entry fun create_profile(storage : &mut Storage,coin : Coin<SUI>,ctx :&mut TxContext){
@@ -260,6 +260,7 @@ entry fun add_file_blob(
             && starts.length() == count ,ERROR_ADD_BLOB_ARG_PARAM_INVALID);
     let  mut blobs = vector::empty<FileBlob>();
     let mut fbo_ids = vector::empty<address>();  
+    
     count.do!(|i|{
 
         let file_id = file_ids[i];

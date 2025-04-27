@@ -100,6 +100,10 @@ export default function UploadPage() {
     if(!wallet || !wallet.isConnected || !acc){
         return (<div><h2>Connect Wallet first</h2></div>)
     }
+
+    if(!profile){
+        return <div><Link href="/profile">Create Profile first</Link></div>
+    }
     return (
     <div>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}
         { profile &&      <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label>} <br/>
@@ -113,7 +117,6 @@ export default function UploadPage() {
         }
         </div>
         <div>
-        <Link href="/image_list" className="text-blue-900 underline hover:no-underline visited:text-blue-300">Blob Images</Link>
         {imagesByUrl && <Link href = {imagesByUrl} className="text-blue-900 underline hover:no-underline visited:text-blue-300">My Images</Link>}
         </div>
     </div>)

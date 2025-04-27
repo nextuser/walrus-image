@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useStorage } from "../storage_provider";
 import ImageFileUpload from '@/components/ImageFileUpload';
 import { useEffect, useState } from 'react';
-import { useCurrentAccount ,useCurrentWallet, useSignAndExecuteTransaction} from "@mysten/dapp-kit";
+import { useAccounts, useCurrentAccount ,useCurrentWallet, useSignAndExecuteTransaction} from "@mysten/dapp-kit";
 import { StorageType } from '@/lib/utils/suiParser';
 import { getProfile, getStorage } from '@/lib/utils/suiUtil'
 import { useSuiClient } from '@mysten/dapp-kit';
@@ -13,8 +13,14 @@ import { Profile } from '@/lib/utils/suiTypes';
 import { Button } from '@/components/ui/button';
 import {getCreateProfileTx} from '@/lib/utils/suiUtil';
 import config from '@/config/config.json'
-import { imageConfigDefault } from 'next/dist/shared/lib/image-config';
-
+import { RechargePanel } from '@/components/RechargePanel';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Plus, Minus } from 'lucide-react';
+const MIN_AMOUNT = 1e7;
 export default function UploadPage() {
     
     const wallet = useCurrentWallet();
@@ -24,6 +30,7 @@ export default function UploadPage() {
     const [profile_balance ,setProfileBalance ] = useState(0)
     const [wallet_balance, setWalletBalance] = useState<number|undefined>()
     const [imageCount ,setImgCount  ] = useState(0); 
+    const [isOpen, setIsOpen] = useState(false);
     
     const suiClient = useSuiClient();
     const afterUploaded = (url :string) => {
@@ -87,6 +94,14 @@ export default function UploadPage() {
             return null;
         }
       }  
+
+      if(profile){
+        console.log('profileId:',profile.id.id);
+      }
+
+      const afterCharge = (value:number)=>{
+        queryProfile();
+      }
     const {mutate : signAndExecuteTransaction} = useSignAndExecuteTransaction();
     const createProfile = async function (){
         const tx = getCreateProfileTx(100_000_000n);
@@ -98,15 +113,31 @@ export default function UploadPage() {
     if(!wallet || !wallet.isConnected || !acc){
         return (<div><h2>Connect Wallet first</h2></div>)
     }
+
     return (
     <div>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}
         { profile &&      <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label>} <br/>
         {wallet_balance &&<label>Wallet  Balance: {wallet_balance/1e9} SUI</label> }<br/>
         <label>Image Count : {imageCount}</label>
+        { (!(wallet_balance === undefined ) && profile) && 
+        
 
+        <div className="justify-start mx-auto mt-10">
+            <Collapsible  defaultOpen={false} onOpenChange={(open) => setIsOpen(open)}>
+                <CollapsibleTrigger className="w-full bg-gray-100 p-3 flex justify-between items-center text-left">
+                    <div className='flex justify-start items-center'>{isOpen ? <Minus className="h-4 w-4 p-4" /> : <Plus className="h-4 w-4 p-4" />}Recharge</div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="p-3 border border-t-0 border-gray-200">
+                    <RechargePanel owner={acc.address} min={MIN_AMOUNT}  max={wallet_balance} onCharged = {afterCharge}/>
+                </CollapsibleContent>
+            </Collapsible>
+        </div>
+        }
         <div>
         {imagesByUrl && <Link href = {imagesByUrl} className="text-blue-900 underline hover:no-underline visited:text-blue-300">My Images</Link>}
         </div>
+
+
     </div>)
 
 }

@@ -475,8 +475,9 @@ export async function getProfile(sc : SuiClient,
         return f.value.fields;
     } else{
         console.log('no data for owner:',owner);
+        return null;
     }
-    return null;
+    
 }
  /*  
 export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:string,sender : string){

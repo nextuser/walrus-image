@@ -20,7 +20,7 @@ export default function UploadPage() {
 
     
     const [storage , setStorage ] = useState<StorageType>();
-    const [profile,setProfile] = useState<Profile|null>();
+    const [profile,setProfile] = useState<Profile|null|undefined>(undefined);
     const [profile_balance ,setProfileBalance ] = useState(0)
     const [wallet_balance, setWalletBalance] = useState<number|undefined>()
 
@@ -101,7 +101,10 @@ export default function UploadPage() {
         return (<div><h2>Connect Wallet first</h2></div>)
     }
 
-    if(!profile){
+    if(profile === undefined){
+        return <div><h2>Loading</h2></div>
+    }
+    if(profile === null ){
         return <div><Link href="/profile">Create Profile first</Link></div>
     }
     return (

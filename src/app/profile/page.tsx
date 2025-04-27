@@ -26,7 +26,7 @@ export default function UploadPage() {
     const wallet = useCurrentWallet();
     const acc  = useCurrentAccount();
     const storage = useStorage();
-    const [profile,setProfile] = useState<Profile|null>();
+    const [profile,setProfile] = useState<Profile|null|undefined>(undefined);
     const [profile_balance ,setProfileBalance ] = useState(0)
     const [wallet_balance, setWalletBalance] = useState<number|undefined>()
     const [imageCount ,setImgCount  ] = useState(0); 
@@ -76,7 +76,7 @@ export default function UploadPage() {
               console.log("createProfile after waittransaction object changes:",rsp.objectChanges);
               for( let o  of rsp.objectChanges){
                  if(o.type == 'created' && o.objectType ==`${config.pkg}::file_blob::Profile`){
-                     return o.objectId;
+                    return o.objectId;
                  }
               }
               //profile balance changed
@@ -91,7 +91,7 @@ export default function UploadPage() {
         },
         onSettled: async (result:any) => {                       
             console.log("create_profile_callback onSettled result:",result,',digest:',result.digest);
-            return null;
+            return ;
         }
       }  
 
@@ -114,6 +114,10 @@ export default function UploadPage() {
         return (<div><h2>Connect Wallet first</h2></div>)
     }
 
+    if(profile === undefined){
+        return <div><h2>Loading</h2></div>
+    }
+
     return (
     <div>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}
         { profile &&      <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label>} <br/>
@@ -125,7 +129,7 @@ export default function UploadPage() {
         <div className="justify-start mx-auto mt-10">
             <Collapsible  defaultOpen={false} onOpenChange={(open) => setIsOpen(open)}>
                 <CollapsibleTrigger className="w-full bg-gray-100 p-3 flex justify-between items-center text-left">
-                    <div className='flex justify-start items-center'>{isOpen ? <Minus className="h-4 w-4 p-4" /> : <Plus className="h-4 w-4 p-4" />}Recharge</div>
+                    <div className='underline text-blue-600 hover:text-blue-800 flex justify-start items-center'>{isOpen ? <Minus className="h-4 w-4 p-4" /> : <Plus className="h-4 w-4 p-4" />}Recharge</div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="p-3 border border-t-0 border-gray-200">
                     <RechargePanel owner={acc.address} min={MIN_AMOUNT}  max={wallet_balance} onCharged = {afterCharge}/>
@@ -134,7 +138,7 @@ export default function UploadPage() {
         </div>
         }
         <div>
-        {imagesByUrl && <Link href = {imagesByUrl} className="text-blue-900 underline hover:no-underline visited:text-blue-300">My Images</Link>}
+        {imagesByUrl && <Link href = {imagesByUrl} className="underline text-blue-600 hover:text-blue-800">My Images</Link>}
         </div>
 
 

@@ -1,6 +1,8 @@
+
 // app/upload/page.tsx
 'use client'; // 标记为客户端组件
 import Link from 'next/link';
+import { useStorage } from "../storage_provider";
 import ImageFileUpload from '@/components/ImageFileUpload';
 import { useEffect, useState } from 'react';
 import { useCurrentAccount ,useCurrentWallet, useSignAndExecuteTransaction} from "@mysten/dapp-kit";
@@ -11,22 +13,20 @@ import { Profile } from '@/lib/utils/suiTypes';
 import { Button } from '@/components/ui/button';
 import {getCreateProfileTx} from '@/lib/utils/suiUtil';
 import config from '@/config/config.json'
+import { imageConfigDefault } from 'next/dist/shared/lib/image-config';
 
 export default function UploadPage() {
     
-    const [imageUrl ,setImageUrl ] = useState('');
     const wallet = useCurrentWallet();
     const acc  = useCurrentAccount();
-
-    
-    const [storage , setStorage ] = useState<StorageType>();
+    const storage = useStorage();
     const [profile,setProfile] = useState<Profile|null>();
     const [profile_balance ,setProfileBalance ] = useState(0)
     const [wallet_balance, setWalletBalance] = useState<number|undefined>()
-
+    const [imageCount ,setImgCount  ] = useState(0); 
+    
     const suiClient = useSuiClient();
     const afterUploaded = (url :string) => {
-        setImageUrl(url)
         queryProfile();
     }
     const queryProfile = ()=>{
@@ -36,15 +36,13 @@ export default function UploadPage() {
       return getProfile(suiClient,storage.profile_map.id.id.bytes, acc.address).then((p)=>{
           setProfile(p);
           setProfileBalance(p ? Number(p.balance) : 0)
+          if(p){
+            setImgCount(p.file_ids.length);
+          }
           return p;
       })
     };
 
-    useEffect(()=>{
-        getStorage(suiClient).then((st)=>{
-            setStorage(st);
-        })
-    },[])
     useEffect(()=>{
         queryProfile();
         if(!acc) {
@@ -103,17 +101,10 @@ export default function UploadPage() {
     return (
     <div>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}
         { profile &&      <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label>} <br/>
-        {wallet_balance &&<label>Wallet  Balance: {wallet_balance/1e9} SUI</label> }
-        <ImageFileUpload 
-            fileUrl={imageUrl} setFileUrl = {afterUploaded}  disabled={ !profile  }
-            storage={storage} profile={profile} owner={acc.address}/>
+        {wallet_balance &&<label>Wallet  Balance: {wallet_balance/1e9} SUI</label> }<br/>
+        <label>Image Count : {imageCount}</label>
+
         <div>
-        {imageUrl && 
-        <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href={imageUrl}> {imageUrl}</Link>
-        }
-        </div>
-        <div>
-        <Link href="/image_list" className="text-blue-900 underline hover:no-underline visited:text-blue-300">Blob Images</Link>
         {imagesByUrl && <Link href = {imagesByUrl} className="text-blue-900 underline hover:no-underline visited:text-blue-300">My Images</Link>}
         </div>
     </div>)

@@ -41,4 +41,12 @@ export interface FileUrl{
   type : string,
 }
 
+export function toFileInfo(fbi : FileBlobInfo) : FileInfo{
+  const fileInfo:FileInfo = {
+    hash : fbi.hash,
+    content_type:fbi.contentType,
+    size : fbi.range.end - fbi.range.end
+  }
+  return fileInfo;
+}
 

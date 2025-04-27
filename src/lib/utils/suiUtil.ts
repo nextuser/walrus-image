@@ -1,7 +1,6 @@
-import { SuiClient } from "@mysten/sui/client";
+import { PaginatedEvents, SuiClient } from "@mysten/sui/client";
 import { SuiTransactionBlockResponse ,    DryRunTransactionBlockResponse} from '@mysten/sui/client'
-import { FileInfo } from "./types";
-import { FileBlobInfo } from "./types";
+import { FileInfo, UploadStatus ,WalrusInfo,FileBlobInfo} from "./types";
 import { Transaction,TransactionArgument ,TransactionObjectArgument} from "@mysten/sui/transactions";
 import config from '@/config/config.json'
 import { fromBase64, toBase64,fromBase58, toHex } from "@mysten/sui/utils";
@@ -11,13 +10,13 @@ import { GasCostSummary } from "@mysten/sui/client";
 import { ContentType } from "./content";
 import * as sp from "./suiParser";
 import { bcs } from "@mysten/bcs";
+
 import { u256_to_blobId,u256_to_hash,
          hash_to_u256,blobId_to_u256 
         } from "@/lib/utils/convert";
 import { Keypair } from "@mysten/sui/cryptography";
 import { FileBlob,FileBlobAddResult,Profile,
         DynamicField,Struct,Address } from "./suiTypes";
-
 /**
  * 
 entry fun add_file(storage : &mut Storage,
@@ -476,7 +475,7 @@ export async function getProfile(sc : SuiClient,
     }
     return null;
 }
-   
+ /*  
 export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:string,sender : string){
 
     return suiClient.getObject({
@@ -495,6 +494,6 @@ export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:strin
         }
     })
    
-}
+}*/
 
 

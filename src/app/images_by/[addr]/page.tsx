@@ -67,6 +67,7 @@ export default function Page() {
                     const hash = fileUrl.name;
                     return (<li key={hash}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
+                        target='_blank'
                         href={fileUrl.url} >
                             {hash}
                         </Link> <label>{fileUrl.type}</label>

@@ -36,6 +36,7 @@ export default async  function Page() {
                     const type = getType(fileInfo)
                     return (<li key={fileInfo.hash}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
+                        target='_blank'
                         href={`${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`} >
                             {fileInfo.hash}
                         </Link> <label>{type}</label>

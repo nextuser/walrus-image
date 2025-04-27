@@ -2,12 +2,13 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { startDataCollection } from '@/lib/utils/globalData';
+import { startDataCollection,initGlobalData } from '@/lib/utils/globalData';
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-//initGlobalData();
+initGlobalData();
+startDataCollection();
 
 const PORT = process.env.PORT || 3000;
 

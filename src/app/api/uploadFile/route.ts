@@ -5,7 +5,7 @@ import path from 'path';
 import { UPLOAD_DIR } from '@/lib/utils/dirs';
 import {ContentType, getContentTypeByExtType,getContentTypeByMimetype,getExtTypeByContentType} from '@/lib/utils/content'
 import {getImageUrl,generateHash} from '@/lib/utils'
-import { addFile ,addFileId,getFileInfo,hasFile} from '@/lib/utils/globalData';
+import { addFileInfo ,addFileId,getFileInfo,hasFile} from '@/lib/utils/globalData';
 import { getServerSideSuiClient } from '@/lib/utils/tests/suiClient';
 import { FileInfo } from '@/lib/utils/types';
 import { startDataCollection } from '@/lib/utils/globalData';
@@ -19,7 +19,7 @@ async function downloadImage(imageUrl: string): Promise<Buffer> {
 
 const suiClient = getServerSideSuiClient();
 export async function POST(request: Request) {
-    startDataCollection();
+    //c();  global init will startDataCollection
     console.log("upload/route.ts :post");
     try {
       
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         };
         console.log("upload image file:", filePath);
         console.log("add file hash , contentype, filename", hash,contentType,fileName);
-        addFile(fileInfo);
+        addFileInfo(fileInfo);
         const signer = getSigner();
         su.addFile(suiClient,signer,owner,fileInfo.hash,fileInfo.size);
         addFileId(owner,hash);        
@@ -89,8 +89,7 @@ export async function POST(request: Request) {
         addFileId(owner,hash);
         console.log("file on walrus,reuse it", fileName);
       }
-      
-      const fileUrl = getImageUrl(request,`${fileName}`);
+      const fileUrl = getImageUrl(request,hash,ext);
       const fileInfo = getFileInfo(hash);
       return NextResponse.json({ url: fileUrl,fileInfo : fileInfo }, { status: 200 });
        

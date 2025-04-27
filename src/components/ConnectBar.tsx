@@ -31,13 +31,18 @@ export default function ConnectBar(){
 
     const links :LinkData[] = [
         {
+            href : "/profile",
+            title : "Profile"
+        },
+        {
             href:'/image_list',
             title:'Recent Images',
         },
         {
             href:'/upload',
             title:'Upload Image',
-        }
+        },
+
 
     ]
 

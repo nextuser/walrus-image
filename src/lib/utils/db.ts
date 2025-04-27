@@ -1,15 +1,21 @@
 import { FileRange, UploadStatus } from './types';
-import {SuiClient } from '@mysten/sui/client';
+import {SuiClient,PaginatedEvents } from '@mysten/sui/client';
 import { FileBlobInfo,WalrusInfo } from './types';
 import fs from 'fs';
 import * as fsp from 'fs/promises';
 import path from 'path';
 import tar from 'tar-stream';
 import { TAR_DIR } from './dirs';
-import {registerFileBobInfo} from '@/lib/utils/globalData'
+import {registerFileBobInfo,addFileBlobInfo} from '@/lib/utils/globalData'
 import {uploadBlob} from '@/lib/utils/blobUtil';
 import { log} from '@/lib/utils/logger'
 import { getTarPath } from '../utils';
+import config from '@/config/config.json'
+import { FileBlobAddResult} from '@/lib/utils/suiTypes'
+import { FileBlob } from '@/lib/utils/suiTypes';
+import { u256_to_blobId,u256_to_hash } from './convert';
+
+
 export function moveToTarDir(tarFile :string) : string{
     let blobId :string =  generateId();
     let dest = path.join(TAR_DIR,blobId);
@@ -111,4 +117,42 @@ function generateId(length: number = 16): string {
   }
   
 
-  
+  export function toFileBlobInfo(fileBlob :FileBlob) : FileBlobInfo{
+    const walrus_info : WalrusInfo = {
+        blobId : u256_to_blobId(BigInt(fileBlob.blob_id)),
+    }
+    const status : UploadStatus ={
+        on_walrus : true,
+        walrus_info 
+    }
+    const fbi : FileBlobInfo = {
+            hash : u256_to_hash(BigInt(fileBlob.file_id)),
+            status ,
+            contentType : fileBlob.mime_type,
+            range : {
+                start : fileBlob.start,
+                end : fileBlob.end
+            }
+    }
+    return fbi;
+}
+
+
+
+export async function  initFileBlobs(sc : SuiClient){
+    let cursor = undefined;
+    let events : PaginatedEvents ;
+    
+    do {
+        events = await sc.queryEvents({query:{MoveEventType:`${config.pkg}::file_blob::FileBlobAddResult`},cursor})
+        cursor = events.nextCursor
+        for(let e of events.data){
+            let r = e.parsedJson as FileBlobAddResult;
+            for(let b of r.blobs){
+                const info = toFileBlobInfo(b)
+                addFileBlobInfo(info);
+            }
+        }
+    } while(events.hasNextPage)
+}
+ 

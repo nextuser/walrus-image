@@ -37,7 +37,7 @@ export type ProfileCreated = {
 export type FileBlob ={
     file_id : string,
     blob_id : string,
-    start : string,
+    start : number,
     end : number,
     mime_type : number,
 }

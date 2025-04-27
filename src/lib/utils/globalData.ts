@@ -1,10 +1,19 @@
 // lib/globalData.ts
 import processFiles from '@/lib/utils/task';
-import { FileBlobInfo,FileInfo } from './types';
+import { FileBlobInfo,FileInfo,toFileInfo } from './types';
 import { ContentType } from './content';
 import { fstat ,promises as fsp} from 'fs';
 import {getExtTypeByContentType} from '@/lib/utils/content'
 import {getBlobOrTarUrl,getImageUrl} from '@/lib/utils'
+import * as fs from 'fs';
+import * as path from 'path';
+import { getHash } from '@/lib/utils';
+import { getContentTypeByExtType } from './content';
+import { UPLOAD_DIR } from './dirs';
+import {initFileBlobs} from '@/lib/utils/db';
+import { getServerSideSuiClient } from './tests/suiClient';
+
+
 type UserProfile ={
    fileIds : string[];
 }
@@ -58,8 +67,15 @@ export interface GlobalData {
      profile.fileIds.push(fileId);
   }
 
-  export function addFile(file:FileInfo){
+  export function addFileInfo(file:FileInfo){
       global.globalData.fileMap.set(file.hash,file);
+  }
+
+
+
+  export function addFileBlobInfo(fileBlob : FileBlobInfo){
+     globalData.blobMap.set(fileBlob.hash,fileBlob);
+     globalData.fileMap.set(fileBlob.hash,toFileInfo(fileBlob))
   }
 
   export function hasFile(file:string) : boolean{
@@ -153,8 +169,8 @@ export function getFileBlob(hash : string)
     
     let fileBlob = getFileBlob(fileInfo.hash);
     if(fileBlob == null){
-        const ext = getExtTypeByContentType(fileInfo.content_type);
-        return [ext,getImageUrl(request,fileInfo.hash,ext)];
+        const extType = getExtTypeByContentType(fileInfo.content_type);
+        return [extType,getImageUrl(request,fileInfo.hash,extType)];
     }
     if(fileBlob.status.on_walrus){
         return ['blob',getBlobOrTarUrl(request,fileBlob)]
@@ -162,3 +178,40 @@ export function getFileBlob(hash : string)
         return ['tar',getBlobOrTarUrl(request,fileBlob)]
     }
   }
+
+  
+export async function initGlobalData(){
+      traverse(UPLOAD_DIR);
+      console.log('tranverse file info count ',globalData.fileMap.size);
+      initFileBlobs(getServerSideSuiClient());
+  }
+
+
+
+// 递归遍历目录
+function traverse(currentDir: string) {
+  const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+  for (const entry of entries) {
+      const entryPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+          // 如果是目录，递归调用 traverse 函数
+          traverse(entryPath);
+      } else {
+          // 如果是文件，获取文件信息
+          const stats = fs.statSync(entryPath);
+          const ext = path.extname(entry.name).substring(1);
+          const hash = getHash(entry.name);
+          const fileInfo: FileInfo = {
+              hash: hash,
+              size: stats.size,
+              content_type: getContentTypeByExtType(ext)
+          };
+          addFileInfo(fileInfo);
+      }
+  }
+}
+
+
+
+
+

@@ -300,10 +300,10 @@ const handleUploadUrl = async () => {
       >
        {uploading ? 'Uploading...' : 'Upload'}
       </Button>
-      {lack && props.profile &&
+      {lack > 0 && props.profile &&
       <div>
-        <label>Need Recharge : {lack/1e9 } SUI</label>
-        <label>My    Balance : {balance/1e9} SUI</label>
+        <div><label>Need Recharge : {lack/1e9 } SUI</label> </div>
+        <div><label>My    Balance : {balance/1e9} SUI</label></div>
         <div className='flex justify-start'>
           <NumberInput 
             name="sellTokenNum"

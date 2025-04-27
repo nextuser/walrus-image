@@ -1,5 +1,5 @@
 import { getSigner } from "./local_key";
-import {getProfileId, getCreateProfileTx, queryFileInfoObjects} from "../suiUtil"
+import {getProfileId, getCreateProfileTx} from "../suiUtil"
 import { getServerSideSuiClient } from "./suiClient";
 import { Keypair } from "@mysten/sui/cryptography";
 import config from "@/config/config.json";
@@ -48,7 +48,6 @@ async function test_file_info_objects(){
     }
 
     console.log(signer.getPublicKey().toSuiAddress());
-    queryFileInfoObjects(suiClient,profile,sender);
 }
 //test_file_info_objects();
 //test_file_blob();

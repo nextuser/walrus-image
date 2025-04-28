@@ -25,6 +25,10 @@ export function getImageUrl(request : Request, fileName : string,ext:string) : s
   return fileUrl;
 }
 
+export function getUploadUrl(request:Request,fileName:string) :string{
+  let site_url = getSiteUrl(request);
+  return site_url + "/uploads/" + encodeURIComponent(fileName);
+}
 
 export function getSiteUrl(request: Request){
   const protocol = request.headers.get('x-forwarded-proto') || 'http';

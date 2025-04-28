@@ -14,6 +14,7 @@ import config from '@/config/config.json'
 import { FileBlobAddResult} from '@/lib/utils/suiTypes'
 import { FileBlob } from '@/lib/utils/suiTypes';
 import { u256_to_blobId,u256_to_hash } from './convert';
+import * as crypto from 'crypto'
 
 
 export function moveToTarDir(tarFile :string) : string{
@@ -88,8 +89,7 @@ export  function recordFileBlobInfo (
 }
 
 
-import * as crypto from 'crypto'
-import { blob } from 'stream/consumers';
+
 function generateId(length: number = 16): string {
     // 浏览器和Node.js都支持的crypto API
     //const cryptoObj = window.crypto || (window as any).msCrypto; // 浏览器
@@ -137,8 +137,10 @@ function generateId(length: number = 16): string {
     return fbi;
 }
 
-
-
+import { MoveStruct } from '@mysten/sui/client';
+import {FileBlobObjectType, FileBlobType} from '@/lib/utils/suiParser'
+import { getServerSideSuiClient } from './tests/suiClient';
+import { Struct } from '@/lib/utils/suiTypes';
 export async function  initFileBlobs(sc : SuiClient){
     let cursor = undefined;
     let events : PaginatedEvents ;
@@ -148,10 +150,30 @@ export async function  initFileBlobs(sc : SuiClient){
         cursor = events.nextCursor
         for(let e of events.data){
             let r = e.parsedJson as FileBlobAddResult;
-            for(let b of r.blobs){
-                const info = toFileBlobInfo(b)
-                addFileBlobInfo(info);
-            }
+            console.log('initFielBlobs ,event',r);
+            await sc.multiGetObjects({ids: r.fbo_ids, options:{showContent:true}}).then((values)=>{
+
+               for(let value of values){
+                  console.log('value',value)
+                  if(value.data?.content?.dataType == 'moveObject'){
+                      console.log('initFileBlobs fields', value.data.content.fields);
+                      let fbo = value.data.content.fields as FileBlobObjectType;
+                      console.log('fbo', fbo);
+                      let fb = (fbo.file_blob as unknown as Struct<FileBlobType>).fields;
+                      let f :FileBlobInfo = {
+                            hash : u256_to_hash(BigInt(fb.file_id)),
+                            status :{
+                              on_walrus : true,
+                              walrus_info : {blobId : u256_to_blobId(BigInt(fb.blob_id))},
+                            },
+                            contentType : fb.mime_type,
+                            range : { start : fb.start, end : fb.end}
+                      }
+                      console.log('addFileBlobInfo',f);
+                      addFileBlobInfo(f);
+                  }
+               }
+            })
         }
     } while(events.hasNextPage)
 }

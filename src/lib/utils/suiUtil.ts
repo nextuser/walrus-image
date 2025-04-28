@@ -56,27 +56,27 @@ export function getRechargeTx(owner : string,amount_mist : number ){
     return tx;
 }
 
-export async function getRecentBlobs(sc : SuiClient){
-    const eventType = `${config.pkg}::file_blob::FileBlobAddResult`;
-    let rsp = await sc.queryEvents({
-        query:{
-            MoveEventType : eventType
-        },
-        order :'descending',
+// export async function getRecentBlobs(sc : SuiClient){
+//     const eventType = `${config.pkg}::file_blob::FileBlobAddResult`;
+//     let rsp = await sc.queryEvents({
+//         query:{
+//             MoveEventType : eventType
+//         },
+//         order :'descending',
     
-    })
-    let blobs : FileBlob[] = [];
-    for(let e of rsp.data){
-        if(e.type == eventType){
-            let r = e.parsedJson as FileBlobAddResult
-            for(let b of r.blobs){
-                blobs.push(b);
-            }
-        }
-    }
-    console.log( 'file blobs ', blobs);
-    return blobs
-}
+//     })
+//     let blobs : FileBlob[] = [];
+//     for(let e of rsp.data){
+//         if(e.type == eventType){
+//             let r = e.parsedJson as FileBlobAddResult
+//             for(let b of r.blobs){
+//                 blobs.push(b);
+//             }
+//         }
+//     }
+//     console.log( 'file blobs ', blobs);
+//     return blobs
+// }
 
 
 /*

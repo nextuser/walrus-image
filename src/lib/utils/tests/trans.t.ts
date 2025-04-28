@@ -7,7 +7,7 @@ import { getServerSideSuiClient } from "./suiClient";
 import { FileBlobInfo } from "../types";
 import { getLocalSigner } from "./local_key";
 import { ProfileCreated ,DynamicField,Profile,Address,Struct,FileBlobAddResult,FileBlob} from "../suiTypes";
-import { getRecentBlobs ,getFileBlobsFor,calcuate_fee,getProfile,addFile,addFileBlob,getStorage} from "../suiUtil";
+import {  getFileBlobsFor,calcuate_fee,getProfile,addFile,addFileBlob,getStorage} from "../suiUtil";
 import { suiClient } from "@/contracts";
 
 const sc = getServerSideSuiClient();
@@ -201,4 +201,8 @@ function testQueryFee()
 }
 
 
-testQueryFee();
+//testQueryFee();
+
+import { initFileBlobs } from "@/lib/utils/db";
+
+initFileBlobs(sc);

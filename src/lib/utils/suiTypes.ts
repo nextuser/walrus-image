@@ -44,7 +44,6 @@ export type FileBlob ={
 
 export type FileBlobAddResult = {
     fbo_ids : string[],
-    blobs : FileBlob[],
     count : number,
     sender : number;
 }

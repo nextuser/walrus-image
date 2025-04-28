@@ -8,7 +8,6 @@ import {getImageUrl,generateHash} from '@/lib/utils'
 import { addFileInfo ,addFileId,getFileInfo,hasFile} from '@/lib/utils/globalData';
 import { getServerSideSuiClient } from '@/lib/utils/tests/suiClient';
 import { FileInfo } from '@/lib/utils/types';
-import { startDataCollection } from '@/lib/utils/globalData';
 import * as su from '@/lib/utils/suiUtil'
 import { getSigner } from '@/lib/utils/tests/local_key';
 async function downloadImage(imageUrl: string): Promise<Buffer> {

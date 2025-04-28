@@ -47,7 +47,20 @@ export default async  function Page() {
                     })
                 }
             </ul>
+            
             <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href="/upload">Upload</Link>
+        
+        <div className="flex justify-start flex-wrap ">
+        {files.map( (fileInfo:FileInfo,index)=>{
+                    const type = getType(fileInfo)
+                    const key = fileInfo.hash + String(index);
+                    const imageUrl = `${protocol}://${host}/images/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`;
+                    return (<div key={key}><img src={imageUrl} style={{width:250,height:250}} />
+                        <CopyButton copy_value={imageUrl} display={type} size={12} fontSize={12} className="flex inline-flex"></CopyButton>
+                        </div>)
+                    })
+        }
+        </div>
         </div>
     )
 }

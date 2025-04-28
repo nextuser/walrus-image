@@ -154,11 +154,11 @@ export async function  initFileBlobs(sc : SuiClient){
             await sc.multiGetObjects({ids: r.fbo_ids, options:{showContent:true}}).then((values)=>{
 
                for(let value of values){
-                  console.log('value',value)
+                  //console.log('value',value)
                   if(value.data?.content?.dataType == 'moveObject'){
-                      console.log('initFileBlobs fields', value.data.content.fields);
+                      //console.log('initFileBlobs fields', value.data.content.fields);
                       let fbo = value.data.content.fields as FileBlobObjectType;
-                      console.log('fbo', fbo);
+                      //console.log('fbo', fbo);
                       let fb = (fbo.file_blob as unknown as Struct<FileBlobType>).fields;
                       let f :FileBlobInfo = {
                             hash : u256_to_hash(BigInt(fb.file_id)),

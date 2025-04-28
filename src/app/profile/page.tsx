@@ -90,7 +90,7 @@ export default function UploadPage() {
            return null;
         },
         onSettled: async (result:any) => {                       
-            console.log("create_profile_callback onSettled result:",result,',digest:',result.digest);
+            console.log("create_profile_callback onSettled result:");
             return ;
         }
       }  

@@ -84,7 +84,6 @@ public struct ProfileCreated has copy,drop{
 
 public struct FileBlobAddResult has copy,drop{
     fbo_ids : vector<address>,
-    blobs : vector<FileBlob>,
     count : u64,
     sender : address
 }
@@ -258,7 +257,6 @@ entry fun add_file_blob(
     assert!(count == mime_types.length() 
             && starts.length() == ends.length() 
             && starts.length() == count ,ERROR_ADD_BLOB_ARG_PARAM_INVALID);
-    let  mut blobs = vector::empty<FileBlob>();
     let mut fbo_ids = vector::empty<address>();  
     
     count.do!(|i|{
@@ -281,8 +279,6 @@ entry fun add_file_blob(
                 mime_type : mime_types[i]
             }
         };
-        let fb_copy = blob_info.file_blob;
-        blobs.push_back(fb_copy);
         fbo_ids.push_back(fbo_address);
         //take fee from Profile => Storage
 
@@ -292,7 +288,6 @@ entry fun add_file_blob(
 
     emit(FileBlobAddResult{
                 fbo_ids,
-                blobs,
                 count : fbo_ids.length(),
                 sender : ctx.sender()
     });

@@ -22,7 +22,7 @@ export async function GET(
   const decodedFilePath = decodeURIComponent(filepath);
   const encodeFileURI = encodeURIComponent(filepath);
 
-  const hash = filepath;
+  const hash = getHash(decodedFilePath);
   const blobInfo = getFileBlob(hash)
   
 
@@ -50,7 +50,7 @@ export async function GET(
   }
   
   const blobUrl = getBlobOrTarUrl(request,blobInfo);
-  console.log("images/hash => blobUrl", blobUrl);
+  console.log("image/hash.ext => blobUrl", blobUrl);
 
 
   return NextResponse.redirect(

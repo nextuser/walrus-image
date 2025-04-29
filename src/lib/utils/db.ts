@@ -169,7 +169,7 @@ export async function  initFileBlobs(sc : SuiClient){
                             contentType : fb.mime_type,
                             range : { start : fb.start, end : fb.end}
                       }
-                      console.log('addFileBlobInfo',f);
+                      //console.log('addFileBlobInfo',f);
                       addFileBlobInfo(f);
                   }
                }

@@ -5,6 +5,7 @@ import { twMerge } from "tailwind-merge"
 import path from 'path'
 import { FileBlob } from "./utils/suiParser";
 import {FileBlobInfo,FileRange} from '@/lib/utils/types'
+import { getExtTypeByContentType } from "./utils/content";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,9 +20,14 @@ export function generateHash(buffer: Buffer): string {
     return hash.digest('hex');
 }
 
-export function getImageUrl(request : Request, fileName : string,ext:string) : string{
+export function getImageUrl(request : Request, fileName : string,ext?:string) : string{
   let site_url = getSiteUrl(request);
-  const fileUrl = `${site_url}/images/${fileName}.${ext}`;
+  return getImageSiteUrl(site_url,fileName,ext);
+}
+
+export function getImageSiteUrl(siteUrl:string, fileName:string,ext?:string){
+  const name = ext ? `${fileName}.${ext}` : fileName 
+  const fileUrl = `${siteUrl}/image/${name}`;
   return fileUrl;
 }
 
@@ -39,7 +45,7 @@ export function getSiteUrl(request: Request){
 
 function getTarUrl(protocol:string,host:string,tarfile : string,contentType : number, range:FileRange){
 
-  return `${protocol}://${host}/tar/$tarfile}/?start=${range.start}&end=${range.end}&contentType=${contentType}`;
+  return `${protocol}://${host}/tar/${tarfile}/?start=${range.start}&end=${range.end}&contentType=${contentType}`;
 }
 export function getBlobTarUrl(protocol:string,host:string,fb: FileBlobInfo):string{
     if(!fb.status.on_walrus) {
@@ -71,4 +77,9 @@ export function getHash(fileName : string){
     return fileName;
   }
   return fileName.substring(0, index);
+}
+
+export function getExt(fileName : string){
+  let index = fileName.lastIndexOf('.')
+  return index != -1 ? fileName.substring(index + 1) : 'bin'
 }

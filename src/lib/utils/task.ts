@@ -125,6 +125,10 @@ export async function processFiles() {
   for (const file of files) {
     const filePath = path.join(UPLOAD_DIR, file);
     const stats = await fs.stat(filePath);
+    if(file == 'info' || stats.size == 0 ){
+      console.log('skip file name :',file);
+      continue
+    }
     if (totalSize + stats.size < SIZE_TOO_LARGE || totalSize < SIZE_TO_TAR) {
       totalSize += stats.size;
       selectedFiles.add(file);

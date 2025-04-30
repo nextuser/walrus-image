@@ -1,7 +1,9 @@
 import path from 'path'
-export const UPLOAD_DIR = path.join(process.cwd(),'public','uploads');
-export const CACHE_DIR = path.join(process.cwd(), 'cache');
-export const TAR_DIR = path.join(process.cwd(), 'tars');
+
+const pid = String(process.pid)
+export const UPLOAD_DIR = path.join('/tmp',pid,'uploads');
+export const CACHE_DIR = path.join('/tmp' ,pid,'cache');
+export const TAR_DIR = path.join('/tmp', pid,'tars');
 
 export function getUploadFile(fileId:string) :string{
     return path.join(UPLOAD_DIR, fileId);

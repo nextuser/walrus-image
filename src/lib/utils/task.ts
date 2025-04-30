@@ -2,10 +2,10 @@ import { promises as fs, unlink } from 'fs';
 import path from 'path';
 import { createWriteStream } from 'fs';
 import {saveBlob , recordFileBlobInfo,  moveToTarDir,  } from './db'; // 假设存在上传和保存信息的函数
-import {getHash,getTarPath} from '@/lib/utils'
+import {getHash} from '@/lib/utils'
 import tar from 'tar-stream';
 import { FileBlobInfo, FileRange } from './types';
-import { UPLOAD_DIR,CACHE_DIR,TAR_DIR, getTarFile } from './dirs';
+import { UPLOAD_DIR,CACHE_DIR,TAR_DIR } from './dirs';
 import { getContentTypeByExtType } from './content';
 import {log} from '@/lib/utils/logger' 
 import { deleteFiles } from './globalData';

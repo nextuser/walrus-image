@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getHash } from '@/lib/utils';
 import { getContentTypeByExtType } from './content';
-import { UPLOAD_DIR } from './dirs';
+import { CACHE_DIR, TAR_DIR, UPLOAD_DIR } from './dirs';
 import {initFileBlobs} from '@/lib/utils/db';
 import { getServerSideSuiClient } from './tests/suiClient';
 
@@ -179,12 +179,20 @@ export function getFileBlob(hash : string)
     }
   }
 
+function mkdirs(){
+  console.log('mkdirs begin');
+  fs.mkdirSync(UPLOAD_DIR,{recursive : true});
+  fs.mkdirSync(TAR_DIR,{recursive : true})
+  fs.mkdirSync(CACHE_DIR,{recursive : true})
+  console.log('mkdirs end');
+}  
   
 export async function initGlobalData(){
+      mkdirs();
       traverse(UPLOAD_DIR);
       console.log('tranverse file info count ',globalData.fileMap.size);
       initFileBlobs(getServerSideSuiClient());
-  }
+}
 
 
 

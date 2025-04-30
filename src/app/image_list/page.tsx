@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getFiles } from "@/lib/utils/globalData";
 import { FileInfo } from "@/lib/utils/types";
 import { getFileBlob } from "@/lib/utils/globalData";
+import { Copy } from "lucide-react";
 import CopyButton from "@/components/CopyButton";
 import Image from 'next/image'
 function getType(fileInfo:FileInfo){
@@ -31,6 +32,15 @@ export default async  function Page() {
    const files = getFiles();
    ///console.log(headersList);
 
+       const copyContent = async (text:string) => {
+        try {
+        await navigator.clipboard.writeText(text);
+        console.log('Content copied to clipboard');
+        } catch (err) {
+        console.error('Failed to copy: ', err);
+        }
+    }
+
     return (
         <div> 
         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href="/upload">Upload</Link>
@@ -45,7 +55,7 @@ export default async  function Page() {
                             target='_blank'
                             href={imageUrl} >
                                 {fileInfo.hash}
-                            </Link> 
+                            </Link><button ></button> 
                             <CopyButton copy_value={imageUrl} display={type} size={12} fontSize={12} className="flex inline-flex"></CopyButton>
                         </li>)
                         })
@@ -62,7 +72,7 @@ export default async  function Page() {
                         return (
                         <div key={key}>
                             <Link href={`/imageView/${fileName}`} >
-                                <Image src={imageUrl} width={200} height={200} alt={fileInfo.hash} 
+                                <img src={imageUrl} width={200} height={200} alt={fileInfo.hash} 
                                     className="w-full h-full object-cover "
                                 />
                             </Link>

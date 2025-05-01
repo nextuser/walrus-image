@@ -102,7 +102,7 @@ export default function UploadPage() {
         return <div><h2>Loading</h2></div>
     }
     if(profile === null ){
-        return <div><Link href="/profile">Create Profile first</Link></div>
+        return <div><Link href="/profile" className="text-blue-900 underline hover:no-underline visited:text-blue-300">Create Profile first</Link></div>
     }
     return (
     <div>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}

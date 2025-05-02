@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { stat } from 'fs/promises';
-import fs from 'fs';
+import fs from '@/lib/imagefs';
 import path from 'path';
 import { UPLOAD_DIR, } from '@/lib/utils/dirs';
 import { getFileBlob } from '@/lib/utils/globalData';
@@ -40,12 +40,11 @@ export async function GET(
           });
     } 
     else{
-        console.log("not found decodedFilePath");
+        console.error('fail to find file of :',uploadsPath);
         return NextResponse.json(
           {message:`not found file ${decodedFilePath}`},
           { status: 400 }
         );
-        console.error('fail to find file of :',uploadsPath);
    }
   }
   

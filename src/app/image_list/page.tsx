@@ -70,9 +70,9 @@ export default async  function Page() {
                         const fileName = `${fileInfo.hash}.${getExtTypeByContentType(fileInfo.content_type)}`;
                         const imageUrl = `${protocol}://${host}/image/${fileName}`;
                         return (
-                        <div key={key}>
+                        <div key={key} className="overflow-clip w-200px h-200px" >
                             <Link href={`/imageView/${fileName}`} >
-                                <img src={imageUrl} width={200} height={200} alt={fileInfo.hash} 
+                                <img src={imageUrl}  alt={fileInfo.hash} 
                                     className="w-full h-full object-cover "
                                 />
                             </Link>

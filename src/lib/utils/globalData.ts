@@ -2,16 +2,15 @@
 import processFiles from '@/lib/utils/task';
 import { FileBlobInfo,FileInfo,toFileInfo } from './types';
 import { ContentType } from './content';
-import { fstat ,promises as fsp} from 'fs';
 import {getExtTypeByContentType} from '@/lib/utils/content'
 import {getBlobOrTarUrl,getImageUrl} from '@/lib/utils'
-import * as fs from 'fs';
 import * as path from 'path';
 import { getHash } from '@/lib/utils';
 import { getContentTypeByExtType } from './content';
 import { CACHE_DIR, TAR_DIR, UPLOAD_DIR } from './dirs';
 import {initFileBlobs} from '@/lib/utils/db';
 import { getServerSideSuiClient } from './tests/suiClient';
+import fs from '@/lib/imagefs'
 
 
 type UserProfile ={
@@ -121,7 +120,7 @@ export interface GlobalData {
       let from_add = now - time_ms ; 
       if(from_add > span_ms){
          console.log('delete file timespan seconds',from_add/1000 ,path);
-         fsp.unlink(path)
+         fs.unlinkSync(path)
        }
     }
   }
@@ -195,20 +194,25 @@ export async function initGlobalData(){
 }
 
 
-
+import type { IDirent } from 'memfs/lib/node/types/misc';
 // 递归遍历目录
 function traverse(currentDir: string) {
   const entries = fs.readdirSync(currentDir, { withFileTypes: true });
   for (const entry of entries) {
-      const entryPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
+      let d = entry as IDirent;
+      if(! d.isDirectory()){
+        continue;
+      }
+      const filename = String(d.name)
+      const entryPath = path.join(currentDir, filename);
+      if (d.isDirectory()) {
           // 如果是目录，递归调用 traverse 函数
           traverse(entryPath);
       } else {
           // 如果是文件，获取文件信息
           const stats = fs.statSync(entryPath);
-          const ext = path.extname(entry.name).substring(1);
-          const hash = getHash(entry.name);
+          const ext = path.extname(filename).substring(1);
+          const hash = getHash(filename);
           const fileInfo: FileInfo = {
               hash: hash,
               size: stats.size,

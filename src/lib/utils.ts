@@ -6,6 +6,7 @@ import path from 'path'
 import { FileBlob } from "./utils/suiParser";
 import {FileBlobInfo,FileRange} from '@/lib/utils/types'
 import { getExtTypeByContentType } from "./utils/content";
+import { TAR_DIR } from "./utils/dirs";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -67,7 +68,7 @@ export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo):string
 }
 
 export function getTarPath(tarfile : string){
-  return path.join(process.cwd(),"tars", tarfile);
+  return path.join(TAR_DIR, tarfile);
 }
 
 // ${hash}.jpg   => ${hash}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, NextFetchEvent } from 'next/server';
-import fs from 'fs/promises';
+import fs from '@/lib/imagefs';
 import path from 'path';
 
 // 假设图片存储在 public/images 目录下
@@ -13,15 +13,16 @@ export async function GET(request: NextRequest,
         return NextResponse.json({ message: 'Missing filepath' }, { status: 400 });
     }
 
-    const fullFilePath = path.join(IMAGES_DIR, filepath);
+    const fullFilePath : string = path.join(IMAGES_DIR, filepath);
 
     try {
         // 检查文件是否存在
-        await fs.access(fullFilePath);
-
+        let exist =  fs.existsSync(fullFilePath);
         // 读取文件内容
-        const fileContent = await fs.readFile(fullFilePath);
-
+        let fileContent =  fs.readFileSync(fullFilePath)
+        if(!fileContent){
+            return  NextResponse.json({ message: 'fs.readFile failed' }, { status: 404 })
+        }
         // 根据文件扩展名设置 Content-Type
         const ext = path.extname(fullFilePath).toLowerCase();
         let contentType = 'application/octet-stream';

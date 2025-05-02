@@ -1,6 +1,5 @@
-import { promises as fs, unlink } from 'fs';
 import path from 'path';
-import { createWriteStream } from 'fs';
+import fs from '@/lib/imagefs';
 import {saveBlob , recordFileBlobInfo,  moveToTarDir,  } from './db'; // 假设存在上传和保存信息的函数
 import {getHash} from '@/lib/utils'
 import tar from 'tar-stream';
@@ -25,21 +24,20 @@ function getExtName(fileName : string):string | undefined{
 const TIME_WAIT_SECONDS_TO_DELETE = 2*60;//todo 30*60
 const MIN_COUNT = 2;
 
-async function copyFiles(srcDir:string,destDir:string,files : Set<string>){
+function copyFiles(srcDir:string,destDir:string,files : Set<string>){
   for (const file of files) {
     const src = path.join(srcDir, file);
     const dest = path.join(destDir, file);
-    await fs.copyFile(src, dest);
+    fs.copyFileSync(src, dest);
   }
 }
 
 type FileRangeRecord = { [fileName: string]: FileRange } ;
 async function doTarFile(files : Set<string>) : Promise<[string|undefined,FileRangeRecord]>{
-  await copyFiles(UPLOAD_DIR,CACHE_DIR,files);
- // await fs.mkdir(TAR_DIR, { recursive: true });
-  const tarPath = path.join(TAR_DIR, 'archive.tar');
+  copyFiles(UPLOAD_DIR,CACHE_DIR,files);
+  const archivePath = path.join(TAR_DIR, 'archive.tar');
   const pack = tar.pack();
-  const tarStream = createWriteStream(tarPath);
+  const tarStream = fs.createWriteStream(archivePath);
 
   const fileRanges: FileRangeRecord = {};
   let currentOffset = 0;
@@ -48,10 +46,10 @@ async function doTarFile(files : Set<string>) : Promise<[string|undefined,FileRa
   for (const file of files) {
     
     const filePath = path.join(CACHE_DIR, file);
-    const stats = await fs.stat(filePath);
-    const fileContent = await fs.readFile(filePath);
+    const stats = fs.statSync(filePath);
+    const fileContent =  fs.readFileSync(filePath);
     //console.log("buffer of filePath",fileContent);
-    const entry = { name: file, size: stats.size };
+    const entry = { name: file,size : stats.size };
     pack.entry(entry, fileContent, (err:any) => {
       if (err) {
         console.error(err);
@@ -76,7 +74,7 @@ async function doTarFile(files : Set<string>) : Promise<[string|undefined,FileRa
       tarStream.on('error', reject);
     });
     await p;
-    const tarFile = await moveToTarDir(tarPath);
+    const tarFile =  moveToTarDir(archivePath);
     return [tarFile,fileRanges]
   } catch(error ){
     console.error("Tarfile Error",error);
@@ -100,11 +98,10 @@ function removeFilesLater(fileNames : Set<string>){
     const cacheFilePath = path.join(CACHE_DIR, file);
     const uploadFilePath = path.join(UPLOAD_DIR, file);
     
-    unlink(cacheFilePath,unlink_callback(cacheFilePath));
-    unlink(uploadFilePath,unlink_callback(uploadFilePath));
+    fs.unlink(cacheFilePath,unlink_callback(cacheFilePath));
+    fs.unlink(uploadFilePath,unlink_callback(uploadFilePath));
   }   
 
-  //await fs.rmdir(CACHE_DIR);
   deleteFiles(TIME_WAIT_SECONDS_TO_DELETE);
 }
 
@@ -118,13 +115,16 @@ export function show_events(rsp : SuiTransactionBlockResponse){
 
 export async function processFiles() {
   log("processFiles begin");
-  const files = await fs.readdir(UPLOAD_DIR);
+  const files =  fs.readdirSync(UPLOAD_DIR);
   let totalSize = 0;
   let selectedFiles = new Set<string>();
 
   for (const file of files) {
+    if(!(typeof(file) === 'string')){
+      continue;
+    } 
     const filePath = path.join(UPLOAD_DIR, file);
-    const stats = await fs.stat(filePath);
+    const stats =  fs.statSync(filePath);
     if(file == 'info' || stats.size == 0 ){
       console.log('skip file name :',file);
       continue
@@ -144,7 +144,6 @@ export async function processFiles() {
   }
 
   if (selectedFiles.size > 0) {
-   // await fs.mkdir(CACHE_DIR, { recursive: true });
     const [tarFile,fileRanges] = await doTarFile(selectedFiles)
     
     if(!tarFile) return;

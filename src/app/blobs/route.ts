@@ -66,7 +66,7 @@ export async function GET(
           });
         } else{
           log('rsp fail ', rsp.status);
-          return  NextResponse.json({msg: rsp.statusText}, {status:500});
+          return  NextResponse.json({msg: rsp.statusText}, {status:404});
         }
     }).catch((reason:any)=>{
       const msg = `fetch blob fail:reason=${reason}`;

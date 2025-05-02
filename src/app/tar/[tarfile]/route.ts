@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
+import fs from '@/lib/imagefs';
 import path from 'path';
 import tar from 'tar-stream';
 import { getTarFile } from '@/lib/utils/dirs';
-import { createReadStream } from 'fs';
 import { Readable } from 'stream';
 import { getMimeTypeByContentType } from '@/lib/utils/content';
 type Context = {
@@ -12,23 +11,22 @@ type Context = {
     }>;
   };
 
-async function readFileRange(
+function readFileRange(
     filePath: string,
     start: number,
     end: number
-  ): Promise<Buffer | null> {
+  ): Buffer | null {
     try {
-      const fileHandle = await fs.open(filePath, 'r');
+      const fileHandle = fs.openSync(filePath, 'r');
       const buffer = Buffer.alloc(end - start);
       
-      const { bytesRead } = await fileHandle.read(
+      const  bytesRead  = fs.readSync(fileHandle,
         buffer, 
         0, 
         buffer.length, 
         start
       );
-      
-      await fileHandle.close();
+      fs.closeSync(fileHandle)
       
       // 如果实际读取的字节数小于请求的字节数，返回实际读取的部分
       return bytesRead < buffer.length ? buffer.slice(0, bytesRead) : buffer;
@@ -65,7 +63,7 @@ export async function GET(request: NextRequest, context : Context ) {
             start: startRange,
             end: endRange , // 注意这里 end 是包含的，所以要减 1
         }
-        const stream = createReadStream(tarPath,range);
+        const stream = fs.createReadStream(tarPath,range);
         //console.log("create stream file and range", tarPath,range);
         const readable : ReadableStream = Readable.toWeb(stream) as ReadableStream;
         return new NextResponse(readable, {

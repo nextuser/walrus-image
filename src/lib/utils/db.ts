@@ -1,7 +1,7 @@
 import { FileRange, UploadStatus } from './types';
 import {SuiClient,PaginatedEvents } from '@mysten/sui/client';
 import { FileBlobInfo,WalrusInfo } from './types';
-import fs from 'fs';
+import fs from '@/lib/imagefs';
 import * as fsp from 'fs/promises';
 import path from 'path';
 import tar from 'tar-stream';
@@ -27,7 +27,7 @@ export function moveToTarDir(tarFile :string) : string{
 
 
 
-async function moveFile(sourcePath: string, destinationPath: string): Promise<void> {
+function moveFile(sourcePath: string, destinationPath: string) {
   try {
     // 确保目标目录存在
     const destinationDir = path.dirname(destinationPath);
@@ -36,7 +36,7 @@ async function moveFile(sourcePath: string, destinationPath: string): Promise<vo
     }
 
     // 移动文件
-    await fs.promises.rename(sourcePath, destinationPath);
+    fs.renameSync(sourcePath, destinationPath);
     console.log(`文件已从 ${sourcePath} 移动到 ${destinationPath}`);
   } catch (error) {
     console.error('移动文件时出错:', error);

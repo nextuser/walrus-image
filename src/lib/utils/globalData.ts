@@ -189,12 +189,15 @@ function mkdirs(){
 export async function initGlobalData(){
       mkdirs();
       traverse(UPLOAD_DIR);
+      const signer = getLocalSigner();//check mnemonic export for local signer
       console.log('tranverse file info count ',globalData.fileMap.size);
       initFileBlobs(getServerSideSuiClient());
+      
 }
 
 
 import type { IDirent } from 'memfs/lib/node/types/misc';
+import { getLocalSigner } from './tests/local_key';
 // 递归遍历目录
 function traverse(currentDir: string) {
   const entries = fs.readdirSync(currentDir, { withFileTypes: true });

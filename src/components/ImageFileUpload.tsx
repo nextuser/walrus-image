@@ -1,8 +1,10 @@
 'use client'
 import { stringify } from 'querystring';
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose }
-from "@/components/ui/dialog";
+// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose }
+// from "@/components/ui/dialog";
+import React from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { Copy, Trash2 } from "lucide-react";
 import { Button } from './ui/button';
 import { useSuiClient,useCurrentAccount } from '@mysten/dapp-kit';
@@ -209,22 +211,27 @@ const handleUploadUrl = async () => {
   },[])
 
   return (
-    <div className='wx-800'>
-
+    <div>
     { error && <p>{error}</p>}
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-    <DialogTrigger onClick={() => { if(!props.disabled){setIsOpen(true)} } } disabled= {props.disabled}>
-    <div><p className="bg-primary/80 text-primary-foreground hover:bg-primary/60 border border-input px-4 py-2 rounded-2xl w-full">
-    Upload Image
-    </p></div>
-    </DialogTrigger>
-      <DialogContent >
-        <DialogHeader>
-          <DialogTitle >Upload Image</DialogTitle>
-          <DialogDescription>
-          Select the local image to upload, or enter the image URL
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog.Root open={isOpen} onOpenChange={setIsOpen} >
+   
+    <Dialog.Trigger onClick={() => { if(!props.disabled){setIsOpen(true)} } } disabled= {props.disabled}>
+          <Dialog.DialogTitle  >
+            <p className="bg-blue-300 hover:bg-blue-400 text-gray-800 font-bold py-1 px-2 rounded-2xl mx-3 w-50">
+            Upload Image
+            </p>
+          </Dialog.DialogTitle>
+          <Dialog.DialogDescription>
+            Select the local image to upload, or enter the image URL
+          </Dialog.DialogDescription>
+    </Dialog.Trigger>
+    <Dialog.Portal>
+      <Dialog.Overlay className="bg-black/70 bg-opacity-60 fixed inset-0" />
+      <Dialog.Content
+        className="fixed left-30 top-30 bg-white p-8 rounded shadow-lg"
+        style={{ zIndex: 1000 }}
+      >  
+      <div>   
         <div className="mb-6">
         <label className="mr-4">
           <input
@@ -267,32 +274,30 @@ const handleUploadUrl = async () => {
       )}
 
       {imageDataUrl && (
-        <div className="mb-6">
-          <img src={imageDataUrl} alt="Preview" className="w-full rounded-lg overflow-clip" />
+        <div className="mb-6 ">
+          <img src={imageDataUrl} alt="Preview" className="max-w-[400px] max-h-[400px] object-contain" />
         </div>
       )}
-
-      <Button
+      </div>
+      <div>
+      <Button className="bg-blue-300 hover:bg-blue-400 text-gray-800 font-bold py-1 px-2 rounded-2xl mx-2 "
         onClick={handleSubmit}
-        disabled = {!imageDataUrl && lack > 0}
+        disabled = {!imageDataUrl  || lack > 0}
       >
        {uploading ? 'Uploading...' : 'Upload'}
-      </Button>
+      </Button></div>
       {lack > 0 && props.profile &&
       <div>
         <div><label>Need Recharge : {lack/1e9 } SUI</label> </div>
         <div><label>My    Balance : {balance/1e9} SUI</label></div>
 
         <RechargePanel min={lack} max ={balance} owner={owner} onCharged={ (v? :number) => set_recharge_amount(Number(v? v:0))  }></RechargePanel>
-        
-        
       </div>}
-      <DialogClose />
-      </DialogContent>
-    </Dialog>
-
-
-      
+      <Dialog.Close />
+  
+      </Dialog.Content>
+      </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

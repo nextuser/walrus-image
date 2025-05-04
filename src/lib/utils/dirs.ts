@@ -1,6 +1,6 @@
 import path from 'path'
 
-const pid = String(process.pid)
+const pid = 'walrus-image';//String(process.pid)
 export const UPLOAD_DIR = path.join('/tmp',pid,'uploads');
 export const CACHE_DIR = path.join('/tmp' ,pid,'cache');
 export const TAR_DIR = path.join('/tmp', pid,'tars');

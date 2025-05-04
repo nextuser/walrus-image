@@ -10,6 +10,7 @@ import { getServerSideSuiClient } from '@/lib/utils/tests/suiClient';
 import { FileInfo } from '@/lib/utils/types';
 import * as su from '@/lib/utils/suiUtil'
 import { getSigner } from '@/lib/utils/tests/local_key';
+import { logger } from '@/lib/utils/logger';
 async function downloadImage(imageUrl: string): Promise<Buffer> {
   console.log("downloadImage:",imageUrl);
   const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       let contentType : ContentType;
       let buffer : Buffer;
       if (typeof fileOrUrl === 'string') {
-        // console.log("download url:",fileOrUrl);
+        console.log("download url:",fileOrUrl);
         // buffer = (await downloadImage(fileOrUrl));
         console.log("filedata prefix ",  fileOrUrl.substring(0,10));
         const basePrefix = "base64,"; 
@@ -61,16 +62,17 @@ export async function POST(request: Request) {
       }
 
       // 保存文件到本地（示例路径：public/uploads）
-
+      console.info("check dir",UPLOAD_DIR)
       if (!fs.existsSync(UPLOAD_DIR)) {
         fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-      }
+      } 
        //从文件可能多个 对应到一个content,  一个content只会对应到一个ext,方便后面根据存储的contenttype来推断 ext
       let ext = getExtTypeByContentType(contentType);
       const hash = generateHash(buffer);
       const fileName = `${hash}.${ext}`; // 生成唯一文件名
       if(!hasFile(hash)){
         const filePath = path.join(UPLOAD_DIR, fileName);
+        console.info("writeFileSync",filePath)
         fs.writeFileSync(filePath, buffer);
         let fileInfo : FileInfo =  {
           hash : hash,

@@ -119,7 +119,7 @@ export default function UploadPage() {
     }
 
     return (
-    <div>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}
+    <div className='justify-start  mx-2 px-2 mt-2'>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}
         { profile &&      <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label>} <br/>
         {wallet_balance &&<label>Wallet  Balance: {wallet_balance/1e9} SUI</label> }<br/>
         <label>Image Count : {imageCount}</label>
@@ -128,8 +128,14 @@ export default function UploadPage() {
 
         <div className="justify-start mx-auto mt-10">
             <Collapsible  defaultOpen={false} onOpenChange={(open) => setIsOpen(open)}>
-                <CollapsibleTrigger className="w-full bg-gray-100 p-3 flex justify-between items-center text-left">
-                    <div className='underline text-blue-600 hover:text-blue-800 flex justify-start items-center'>{isOpen ? <Minus className="h-4 w-4 p-4" /> : <Plus className="h-4 w-4 p-4" />}Recharge</div>
+                <CollapsibleTrigger className="w-400[px] bg-gray-100 p-3 flex justify-between items-center text-left">
+                    <div className='underline text-blue-600 hover:text-blue-800 flex justify-start items-center'>
+                        <div
+                          className='bg-blue-300 hover:bg-blue-400 text-gray-800 font-bold py-1 px-2 rounded-2xl  flex flex-row'
+                        >{isOpen ? <Minus  /> : <Plus /> }
+                        Recharge
+                        </div>
+                    </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="p-3 border border-t-0 border-gray-200">
                     <RechargePanel owner={acc.address} min={MIN_AMOUNT}  max={wallet_balance} onCharged = {afterCharge}/>

@@ -62,19 +62,20 @@ export   function RechargePanel(
       rechargeToProfile(props.owner ,recharge_amount)
     }
     const percents = [0,25,50,75,100];
-    return <div>        
-    <div className='flex justify-start w-400 overflow-clip'>
-    <label>MAX {props.max/1e9} SUI</label>
-    <NumberInput 
+    return <div className='max-w-300[px] overflow-x-clip '>        
+    <div><label>MAX {props.max/1e9} SUI</label></div>
+    <div className='max-w-200[px] overflow-clip'>
+      <NumberInput 
       name="setRechargAmount"
       stepper={0.01}
       min = {props.min / 1e9}
       decimalScale = {9}
       max = {props.max / 1e9}
       value={recharge_amount / 1e9} 
+      suffix=" SUI"
+      className='max-w-[200px] justify-start'
       onValueChange={(v? :number) => set_recharge_amount(Number(v? v:0) * 1e9)} 
-    /> SUI
-    </div>
+    /></div>
     <div>
     <Input
       name="sliderBar"
@@ -97,10 +98,12 @@ export   function RechargePanel(
       })
     }
   </div>
-  <Button onClick={rechargeProfile}  disabled = { recharge_amount < props.min && recharge_amount > 0}>
+  <Button onClick={rechargeProfile}  disabled = { recharge_amount < props.min && recharge_amount > 0}
+    className='bg-blue-300 hover:bg-blue-400 text-gray-800 font-bold py-1 px-2 rounded-2xl mx-2'
+    >
     Recharge 
   </Button>
-  
+
   </div>
 
 }

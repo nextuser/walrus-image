@@ -1,5 +1,5 @@
 
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash, Trash2 } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useState } from 'react';
 import { NumericFormat, NumericFormatProps } from 'react-number-format';
 import { Button } from './ui/button';
@@ -36,6 +36,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       decimalScale = 0,
       suffix,
       prefix,
+      className,
       value: controlledValue,
       ...props
     },
@@ -114,7 +115,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
     };
 
     return (
-      <div className="flex  justify-center" >
+      <div className={`flex flex-row ${className}`} >
         <NumericFormat
           value={value}
           onValueChange={handleChange}
@@ -154,7 +155,12 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
           >
             <ChevronDown size={15} />
           </Button>
+          
         </div>
+        <Button onClick={(e)=>{ setValue(min)}}
+         className='bg-blue-300 hover:bg-blue-400 text-gray-800 font-bold py-1 px-2 rounded-lg mx-2'>
+            <Trash2></Trash2>
+        </Button>
       </div>
     );
   }

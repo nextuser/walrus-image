@@ -11,6 +11,9 @@ import { CACHE_DIR, TAR_DIR, UPLOAD_DIR } from './dirs';
 import {initFileBlobs} from '@/lib/utils/db';
 import { getServerSideSuiClient } from './tests/suiClient';
 import getSharedFs from '@/lib/imagefs'
+import type { IDirent } from 'memfs/lib/node/types/misc';
+import { getLocalSigner } from './tests/local_key';
+import { IFs } from 'memfs';
 
 type UserProfile ={
    fileIds : string[];
@@ -196,16 +199,13 @@ function mkdirs(){
 export async function initGlobalData(){
       mkdirs();
       traverse(UPLOAD_DIR);
+      initFileBlobs(getServerSideSuiClient());
       const signer = getLocalSigner();//check mnemonic export for local signer
       console.log('tranverse file info count ',globalData.fileMap.size);
-      initFileBlobs(getServerSideSuiClient());
+      
       
 }
 
-
-import type { IDirent } from 'memfs/lib/node/types/misc';
-import { getLocalSigner } from './tests/local_key';
-import { IFs } from 'memfs';
 // 递归遍历目录
 function traverse(currentDir: string) {
   const fs = getFs()

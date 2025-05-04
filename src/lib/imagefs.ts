@@ -35,9 +35,9 @@ function getSharedFs(){
 class SharedInstance {
     private static _instance: SharedInstance;
     ifs : IFs ;
-    i : number;
+    static i : number = 0;
     constructor(){
-        this.i = 0;
+        SharedInstance.i ++;
         const volume = new Volume()
         this.ifs = createFsFromVolume(volume);
     }
@@ -50,7 +50,7 @@ class SharedInstance {
     }
 
     public getFs() {
-        console.log("call getFs", this.i ++ );
+        console.log("call getFs", SharedInstance.i );
         return this.ifs;
     }
 }

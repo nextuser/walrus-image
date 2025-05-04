@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getFiles } from "@/lib/utils/globalData";
 import { FileInfo } from "@/lib/utils/types";
 import { getFileBlob } from "@/lib/utils/globalData";
+import getFs from '@/lib/imagefs'
 import { Copy } from "lucide-react";
 import CopyButton from "@/components/CopyButton";
 import Image from 'next/image'

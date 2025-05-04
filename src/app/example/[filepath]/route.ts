@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, NextFetchEvent } from 'next/server';
-import fs from '@/lib/imagefs';
+import {getFs} from '@/lib/utils/globalData';
 import path from 'path';
 
 // 假设图片存储在 public/images 目录下
@@ -16,6 +16,7 @@ export async function GET(request: NextRequest,
     const fullFilePath : string = path.join(IMAGES_DIR, filepath);
 
     try {
+        const fs = getFs()
         // 检查文件是否存在
         let exist =  fs.existsSync(fullFilePath);
         // 读取文件内容

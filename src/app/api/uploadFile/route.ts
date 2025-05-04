@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { NextResponse } from 'next/server';
-import fs from '@/lib/imagefs';
+import {getFs} from '@/lib/utils/globalData';
 import path from 'path';
 import { UPLOAD_DIR } from '@/lib/utils/dirs';
 import {ContentType, getContentTypeByExtType,getContentTypeByMimetype,getExtTypeByContentType} from '@/lib/utils/content'
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       let contentType : ContentType;
       let buffer : Buffer;
       if (typeof fileOrUrl === 'string') {
-        console.log("download url:",fileOrUrl);
+        ////console.log("download url:",fileOrUrl);
         // buffer = (await downloadImage(fileOrUrl));
         console.log("filedata prefix ",  fileOrUrl.substring(0,10));
         const basePrefix = "base64,"; 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       if (!buffer) {
         return NextResponse.json({ message: '未找到文件' }, { status: 400 });
       }
-
+      const fs = getFs()
       // 保存文件到本地（示例路径：public/uploads）
       console.info("check dir",UPLOAD_DIR)
       if (!fs.existsSync(UPLOAD_DIR)) {

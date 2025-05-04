@@ -130,9 +130,7 @@ export default  function ImageFileUpload(
             const p = props.profile;
             const fileInfo =  result.fileInfo as FileInfo;
             if(p && fileInfo){
-              let neeedFee = calcuate_fee(props.storage.feeConfig, fileInfo.size)
-              let existBalance = Number(p.balance);
-              setLack(  neeedFee - existBalance)
+              profileUpdate(p,fileInfo.size)
             }//end if
         }//end if
         return result.url;
@@ -142,6 +140,15 @@ export default  function ImageFileUpload(
       } finally {
         setUploading(false);
       }
+  }
+
+  const  profileUpdate = (profile : Profile|null, size : number) => {
+    if(!props.storage || !profile) { 
+      return;
+    } 
+    let neeedFee = calcuate_fee(props.storage.feeConfig, size)
+    let existBalance = Number(profile.balance);
+    setLack(  neeedFee - existBalance)
   }
 
 
@@ -206,9 +213,34 @@ const handleUploadUrl = async () => {
     }
   };
 
+
+
+  const afterCharged = (v ? :number) => {
+    if(!props.storage){
+      return;
+    }
+     set_recharge_amount(Number(v? v:0))
+
+  }
+  
+
   useEffect(()=>{
     suiClient.getBalance({owner }).then((b)=>{ setBalance(Number(b.totalBalance))})
   },[])
+
+  useEffect(()=>{
+    if(!props.storage){
+      return;
+    }
+    getProfile(suiClient,props.storage.profile_map.id.id.bytes,props.owner)
+    .then((profile)=>{
+      if(!profile || !imageDataUrl ){
+        return ;
+      }
+      const length = Buffer.from(imageDataUrl).length
+      profileUpdate(profile,length);
+    })
+  },[props.profile, imageDataUrl])
 
   return (
     <div>
@@ -291,7 +323,7 @@ const handleUploadUrl = async () => {
         <div><label>Need Recharge : {lack/1e9 } SUI</label> </div>
         <div><label>My    Balance : {balance/1e9} SUI</label></div>
 
-        <RechargePanel min={lack} max ={balance} owner={owner} onCharged={ (v? :number) => set_recharge_amount(Number(v? v:0))  }></RechargePanel>
+        <RechargePanel min={lack} max ={balance} owner={owner} onCharged={ afterCharged  }></RechargePanel>
       </div>}
       <Dialog.Close />
   

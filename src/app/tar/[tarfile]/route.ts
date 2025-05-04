@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from '@/lib/imagefs';
+import {getFs} from '@/lib/utils/globalData';
 import path from 'path';
 import tar from 'tar-stream';
 import { getTarFile } from '@/lib/utils/dirs';
@@ -17,6 +17,7 @@ function readFileRange(
     end: number
   ): Buffer | null {
     try {
+      const fs = getFs()
       const fileHandle = fs.openSync(filePath, 'r');
       const buffer = Buffer.alloc(end - start);
       
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest, context : Context ) {
     const contentType = Number(searchParams.get("contentType") );
     console.log(`http tar:start=${start},end =${end} ,contentType=${contentType} blobId=${blobId}`);
     const mimeType = getMimeTypeByContentType(contentType);
+    const fs = getFs()
+
     if(!start || !end){
 
         return NextResponse.json({message:`invalid arg of start:${start},end =${end} ,contentType=${contentType}`},{status:400});

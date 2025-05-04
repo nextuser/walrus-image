@@ -10,8 +10,7 @@ import { getContentTypeByExtType } from './content';
 import { CACHE_DIR, TAR_DIR, UPLOAD_DIR } from './dirs';
 import {initFileBlobs} from '@/lib/utils/db';
 import { getServerSideSuiClient } from './tests/suiClient';
-import fs from '@/lib/imagefs'
-
+import getSharedFs from '@/lib/imagefs'
 
 type UserProfile ={
    fileIds : string[];
@@ -24,6 +23,7 @@ export interface GlobalData {
     fileMap : Map<string,FileInfo>;
     profileMap : Map<string,UserProfile>;
     deleteFileTimeMap : Map<string,number>; 
+    fs : IFs;
   }
   
   // 初始化全局变量（仅在服务器端运行）
@@ -40,7 +40,12 @@ export interface GlobalData {
       fileMap : new Map<string,FileInfo>(),
       profileMap : new Map<string,UserProfile>(),
       deleteFileTimeMap : new Map<string,number>,
+      fs : getSharedFs(),
     };
+  }
+
+  export function getFs() :IFs {
+     return global.globalData.fs
   }
 
   export function getFileHashesFor(owner :string) : string[]{
@@ -114,6 +119,7 @@ export interface GlobalData {
    */
   export function deleteFiles(span_seconds : number){
     const span_ms = span_seconds * 1000;
+    const fs = getFs()
     console.log("delete old file for ",span_seconds, ' secs');
     const now = new Date().getTime();
     for(let [path  , time_ms] of globalData.deleteFileTimeMap ){
@@ -179,6 +185,7 @@ export function getFileBlob(hash : string)
   }
 
 function mkdirs(){
+  const fs = getFs()
   console.log('mkdirs begin');
   fs.mkdirSync(UPLOAD_DIR,{recursive : true});
   fs.mkdirSync(TAR_DIR,{recursive : true})
@@ -198,8 +205,10 @@ export async function initGlobalData(){
 
 import type { IDirent } from 'memfs/lib/node/types/misc';
 import { getLocalSigner } from './tests/local_key';
+import { IFs } from 'memfs';
 // 递归遍历目录
 function traverse(currentDir: string) {
+  const fs = getFs()
   const entries = fs.readdirSync(currentDir, { withFileTypes: true });
   for (const entry of entries) {
       let d = entry as IDirent;

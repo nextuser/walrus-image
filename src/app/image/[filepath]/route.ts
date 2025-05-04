@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from '@/lib/imagefs';
+import {getFs} from '@/lib/utils/globalData';
 import path from 'path';
 import { UPLOAD_DIR, } from '@/lib/utils/dirs';
 import { getFileBlob } from '@/lib/utils/globalData';
@@ -17,7 +17,6 @@ export async function GET(
   request: Request,
   context : Context 
 ) {
-  
   const { filepath } = await context.params;
   logger.info("GET : filepath",filepath);
   const decodedFilePath = decodeURIComponent(filepath);
@@ -25,6 +24,7 @@ export async function GET(
 
   const hash = getHash(decodedFilePath);
   const blobInfo = getFileBlob(hash)
+  const fs = getFs();
   console.log('fs UPLOAD_DIR exists:',fs.existsSync(UPLOAD_DIR))
 
   if(blobInfo == null){

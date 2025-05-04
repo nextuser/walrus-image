@@ -1,8 +1,7 @@
 import { FileRange, UploadStatus } from './types';
 import {SuiClient,PaginatedEvents } from '@mysten/sui/client';
 import { FileBlobInfo,WalrusInfo } from './types';
-import fs from '@/lib/imagefs';
-import * as fsp from 'fs/promises';
+import {getFs} from '@/lib/utils/globalData';
 import path from 'path';
 import tar from 'tar-stream';
 import { TAR_DIR } from './dirs';
@@ -15,29 +14,26 @@ import { FileBlobAddResult} from '@/lib/utils/suiTypes'
 import { FileBlob } from '@/lib/utils/suiTypes';
 import { u256_to_blobId,u256_to_hash } from './convert';
 import * as crypto from 'crypto'
+import { MoveStruct } from '@mysten/sui/client';
+import {FileBlobObjectType, FileBlobType} from '@/lib/utils/suiParser'
+import { getServerSideSuiClient } from './tests/suiClient';
+import { Struct } from '@/lib/utils/suiTypes';
 
-
-export function moveToTarDir(tarFile :string) : string{
-    let blobId :string =  generateId();
-    let dest = path.join(TAR_DIR,blobId);
-    //todo 没有上传，先将tar文件移动
-    moveFile(tarFile,dest);
-    return blobId;
-}
-
-
-
-function moveFile(sourcePath: string, destinationPath: string) {
+function moveFile(sourcePath: string, destinationPath: string) :string | undefined{
   try {
+    const fs = getFs()
     // 确保目标目录存在
     const destinationDir = path.dirname(destinationPath);
     if (!fs.existsSync(destinationDir)) {
-      fs.mkdirSync(destinationDir, { recursive: true });
+      console.log("moveFile , mkDirSync", destinationDir);
+      fs.mkdirSync(destinationDir, { recursive: true });  
     }
 
     // 移动文件
     fs.renameSync(sourcePath, destinationPath);
-    console.log(`文件已从 ${sourcePath} 移动到 ${destinationPath}`);
+    console.log(`moveFile ${sourcePath} => ${destinationPath}`);
+    return destinationPath
+    
   } catch (error) {
     console.error('移动文件时出错:', error);
     throw error;
@@ -45,10 +41,23 @@ function moveFile(sourcePath: string, destinationPath: string) {
 }
 
 export async function saveBlob(tarfile :string) : Promise<UploadStatus | null> {
-    const filePath = getTarPath(tarfile);
-    return fsp.readFile(filePath).then( (buffer:Buffer)=>{
-
-      return uploadBlob(buffer).then((blobInfo : WalrusInfo)=>{
+    const filePath = tarfile;
+     const fs = getFs()
+     let buffer :Buffer;
+     try{
+      let data = fs.readFileSync(filePath);
+      
+      if(typeof(data) == 'string') {
+        buffer = Buffer.from(data)
+      } else{
+        buffer = data;
+      }
+    }catch(ex ){
+      console.log('saveBlob read tarfile fail for path:', filePath);
+      return null;
+    }
+    
+     return uploadBlob(buffer).then((blobInfo : WalrusInfo)=>{
         
         let status :UploadStatus = {
           on_walrus : true,
@@ -64,10 +73,6 @@ export async function saveBlob(tarfile :string) : Promise<UploadStatus | null> {
         }
         return status;
       });
-  }).catch( (reason)=>{
-     console.log(`read tarfile[${filePath}] fail `,reason );
-     return null;
-  });
 }
 export  function recordFileBlobInfo (
     hash : string,
@@ -90,7 +95,7 @@ export  function recordFileBlobInfo (
 
 
 
-function generateId(length: number = 16): string {
+export function generateId(length: number = 16): string {
     // 浏览器和Node.js都支持的crypto API
     //const cryptoObj = window.crypto || (window as any).msCrypto; // 浏览器
     const cryptoObj = crypto;
@@ -137,10 +142,7 @@ function generateId(length: number = 16): string {
     return fbi;
 }
 
-import { MoveStruct } from '@mysten/sui/client';
-import {FileBlobObjectType, FileBlobType} from '@/lib/utils/suiParser'
-import { getServerSideSuiClient } from './tests/suiClient';
-import { Struct } from '@/lib/utils/suiTypes';
+
 export async function  initFileBlobs(sc : SuiClient){
     let cursor = undefined;
     let events : PaginatedEvents ;

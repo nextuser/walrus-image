@@ -1,6 +1,6 @@
 import path from 'path';
-import fs from '@/lib/imagefs';
-import {saveBlob , recordFileBlobInfo,  moveToTarDir,  } from './db'; // 假设存在上传和保存信息的函数
+import {getFs} from '@/lib/utils/globalData';
+import {saveBlob , recordFileBlobInfo} from './db'; // 假设存在上传和保存信息的函数
 import {getHash} from '@/lib/utils'
 import tar from 'tar-stream';
 import { FileBlobInfo, FileRange } from './types';
@@ -13,6 +13,7 @@ import { getSigner } from './tests/local_key';
 import { getServerSideSuiClient } from './tests/suiClient';
 import { SuiTransactionBlockResponse } from '@mysten/sui/client';
 import { getCost } from './suiUtil';
+import {generateId} from './db'
 const suiClient = getServerSideSuiClient();
 const SIZE_TOO_LARGE = 10 * 1024 * 1024;
 const SIZE_TO_TAR = 100  * 1024;
@@ -25,6 +26,7 @@ const TIME_WAIT_SECONDS_TO_DELETE = 2*60;//todo 30*60
 const MIN_COUNT = 2;
 
 function copyFiles(srcDir:string,destDir:string,files : Set<string>){
+  const fs = getFs()
   for (const file of files) {
     const src = path.join(srcDir, file);
     const dest = path.join(destDir, file);
@@ -34,8 +36,11 @@ function copyFiles(srcDir:string,destDir:string,files : Set<string>){
 
 type FileRangeRecord = { [fileName: string]: FileRange } ;
 async function doTarFile(files : Set<string>) : Promise<[string|undefined,FileRangeRecord]>{
+  const fs = getFs()
   copyFiles(UPLOAD_DIR,CACHE_DIR,files);
-  const archivePath = path.join(TAR_DIR, 'archive.tar');
+  let blobId :string =  generateId();
+ 
+  const archivePath = path.join(TAR_DIR,blobId);
   const pack = tar.pack();
   const tarStream = fs.createWriteStream(archivePath);
 
@@ -68,14 +73,21 @@ async function doTarFile(files : Set<string>) : Promise<[string|undefined,FileRa
 
   pack.finalize();
   pack.pipe(tarStream);
+  
+
   try{
     const p = new Promise((resolve, reject) => {
-      tarStream.on('finish', ()=>resolve(null));
+      tarStream.on('finish', ()=>{
+        pack.finalize();
+        console.log('tarstream finished');
+        resolve(null)
+        console.log('tarStream resolve ');
+      });
       tarStream.on('error', reject);
+      tarStream.on('close' , ()=>{ console.log('tar stream close');})
     });
     await p;
-    const tarFile =  moveToTarDir(archivePath);
-    return [tarFile,fileRanges]
+    return [archivePath,fileRanges]
   } catch(error ){
     console.error("Tarfile Error",error);
   }
@@ -83,6 +95,7 @@ async function doTarFile(files : Set<string>) : Promise<[string|undefined,FileRa
 }
 
 function removeFilesLater(fileNames : Set<string>){
+  const fs = getFs()
 
   const unlink_callback = (path : string) =>{
     return (err:any) => {
@@ -114,6 +127,7 @@ export function show_events(rsp : SuiTransactionBlockResponse){
 }
 
 export async function processFiles() {
+  const fs = getFs()
   log("processFiles begin");
   const files =  fs.readdirSync(UPLOAD_DIR);
   let totalSize = 0;
@@ -146,7 +160,10 @@ export async function processFiles() {
   if (selectedFiles.size > 0) {
     const [tarFile,fileRanges] = await doTarFile(selectedFiles)
     
-    if(!tarFile) return;
+    if(!tarFile){
+      console.error('tar file error' );
+      return;
+    } 
 
     const now = new Date().getTime();
     const status = await saveBlob(tarFile);

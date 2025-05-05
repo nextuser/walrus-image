@@ -1,4 +1,4 @@
-import { PaginatedEvents, SuiClient } from "@mysten/sui/client";
+import { PaginatedEvents, SuiClient,EventId } from "@mysten/sui/client";
 import { SuiTransactionBlockResponse ,    DryRunTransactionBlockResponse} from '@mysten/sui/client'
 import { FileInfo, UploadStatus ,WalrusInfo,FileBlobInfo} from "./types";
 import { Transaction,TransactionArgument ,TransactionObjectArgument} from "@mysten/sui/transactions";
@@ -6,6 +6,8 @@ import config from '@/config/config.json'
 import { fromBase64, toBase64,fromBase58, toHex } from "@mysten/sui/utils";
 import * as parser from "./suiParser";
 import { GasCostSummary } from "@mysten/sui/client";
+import {FileBlobObjectType, FileBlobType} from '@/lib/utils/suiParser'
+import { getBlobTarUrl } from "../utils";
 import { ContentType } from "./content";
 import * as sp from "./suiParser";
 import { bcs } from "@mysten/bcs";
@@ -510,5 +512,55 @@ export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:strin
     })
    
 }*/
+export type Cursor = EventId|undefined|null
+export type FileBlobEvents  ={
+    fileBlobs : FileBlobInfo[];
+    prev? : Cursor;
+    cursor? : Cursor
+    next ? : Cursor
+}
 
+export function emptyFileBlobEvents(){
+    return { fileBlobs:[],cursor : undefined, }
+}
+
+export async function  queryFileBlobEvents(sc : SuiClient, cursor ? : EventId|null) : Promise<FileBlobEvents>{
+    if(!sc) {
+        return  emptyFileBlobEvents();
+    }
+    let result :FileBlobEvents = emptyFileBlobEvents();
+    
+    let events = await sc.queryEvents({query:{MoveEventType:`${config.pkg}::file_blob::FileBlobAddResult`},cursor})
+    result.cursor = cursor
+    result.next = events.nextCursor
+    const ids : string[] = [];
+    for(let e of events.data){
+        let r = e.parsedJson as FileBlobAddResult;
+        console.log('initFielBlobs ,event',r);
+        ids.push(... r.fbo_ids)
+    }
+
+    let values = await sc.multiGetObjects({ids, options:{showContent:true}})
+    for(let value of values){
+        //console.log('value',value)
+        if(value.data?.content?.dataType == 'moveObject'){
+            //console.log('initFileBlobs fields', value.data.content.fields);
+            let fbo = value.data.content.fields as FileBlobObjectType;
+            //console.log('fbo', fbo);
+            let fb = (fbo.file_blob as unknown as Struct<FileBlobType>).fields;
+            let f :FileBlobInfo = {
+                hash : u256_to_hash(BigInt(fb.file_id)),
+                status :{
+                    on_walrus : true,
+                    walrus_info : {blobId : u256_to_blobId(BigInt(fb.blob_id))},
+                },
+                contentType : fb.mime_type,
+                range : { start : fb.start, end : fb.end}
+            }
+            //console.log('addFileBlobInfo',f);
+            result.fileBlobs.push(f);
+        }
+    }
+    return result;
+}
 

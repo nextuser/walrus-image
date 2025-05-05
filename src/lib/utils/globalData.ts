@@ -206,8 +206,6 @@ async function initGlobalData(){
       initFileBlobs(getServerSideSuiClient());
       const signer = getSigner();//check mnemonic export for local signer
       console.log('tranverse file info count ',globalData.fileMap.size);
-      
-      
 }
 
 

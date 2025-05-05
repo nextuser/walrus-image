@@ -23,7 +23,7 @@ export default function Home() {
     <div className="  font-[family-name:var(--font-geist-sans)]">
       {
         fileUrls.map((value)=>{
-          return <Link href={value.url} 
+          return <Link href={value.url}  key={value.name}
                   className="text-blue-900 underline hover:no-underline visited:text-blue-300 ">
             <h3 className="text-2xl mx-2 px-3 pt-3">{value.name}</h3></Link>
         })

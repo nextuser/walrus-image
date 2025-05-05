@@ -25,6 +25,9 @@ import { Volume, createFsFromVolume,IFs } from 'memfs';
 //         return this.ifs;
 //     }
 // }
+import fs  from  'fs';
+//todo export type ImageFs2 = IFs;
+export type ImageFs = typeof fs;
 
 function getSharedFs(){
     return SharedInstance.getInstance().getFs()
@@ -51,7 +54,8 @@ class SharedInstance {
 
     public getFs() {
         console.log("call getFs", SharedInstance.i );
-        return this.ifs;
+        //return this.ifs; todo use fs
+        return fs;
     }
 }
 

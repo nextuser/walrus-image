@@ -13,7 +13,7 @@ import { getServerSideSuiClient } from './tests/suiClient';
 import getSharedFs from '@/lib/imagefs'
 import type { IDirent } from 'memfs/lib/node/types/misc';
 import { getSigner } from './tests/local_key';
-import { IFs } from 'memfs';
+import { ImageFs } from '@/lib/imagefs';
 
 type UserProfile ={
    fileIds : string[];
@@ -26,7 +26,7 @@ export interface GlobalData {
     fileMap : Map<string,FileInfo>;
     profileMap : Map<string,UserProfile>;
     deleteFileTimeMap : Map<string,number>; 
-    fs : IFs;
+    fs : ImageFs;
     id : string;
   }
   
@@ -49,7 +49,7 @@ export interface GlobalData {
     };
   }
 
-  export function getFs() :IFs {
+  export function getFs() :ImageFs {
      return global.globalData.fs
   }
 

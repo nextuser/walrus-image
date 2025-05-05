@@ -31,6 +31,10 @@ export default function ConnectBar(){
 
     const links :LinkData[] = [
         {
+            href: '/',
+            title:'Home',
+        },
+        {
             href : "/profile",
             title : "Profile"
         },

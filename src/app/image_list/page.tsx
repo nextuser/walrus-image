@@ -44,7 +44,8 @@ export default async  function Page() {
 
     return (
         <div> 
-        <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href="/upload">Upload</Link>
+        <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href="/upload">
+            <p className="text-2xl pt-2 max-2 px-2">Upload</p></Link>
         <div className="grid grid-cols-2 gap-4 p-4">
             <div>
                 <ul>{ 
@@ -55,7 +56,8 @@ export default async  function Page() {
                             <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
                             target='_blank'
                             href={imageUrl} >
-                                {fileInfo.hash}
+                                <span className="text-xl pt-2 max-2 px-2">
+                                {fileInfo.hash}</span>
                             </Link><button ></button> 
                             <CopyButton copy_value={imageUrl} display={type} size={12} fontSize={12} className="flex inline-flex"></CopyButton>
                         </li>)

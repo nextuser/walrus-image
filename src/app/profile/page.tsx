@@ -50,7 +50,7 @@ export default function ProfilePage(props : PageProps ) {
     const queryProfile = ()=>{
       const storage = storageIntf?.storage
       if(!storage || !acc){
-          console.error('queryProfile error ,storage acc invalid',storage,acc)
+          console.log('queryProfile error ,storage acc invalid',storage,acc)
           return ;
       }
       return getProfile(suiClient,storage.profile_map.id.id.bytes, acc.address).then((p)=>{

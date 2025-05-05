@@ -8,9 +8,11 @@ import * as path from 'path';
 import { getHash } from '@/lib/utils';
 import { getContentTypeByExtType } from './content';
 import { CACHE_DIR, TAR_DIR, UPLOAD_DIR } from './dirs';
-import {initFileBlobs} from '@/lib/utils/db';
+import {generateId, initFileBlobs} from '@/lib/utils/db';
 import { getServerSideSuiClient } from './tests/suiClient';
 import getSharedFs from '@/lib/imagefs'
+import type { IDirent } from 'memfs/lib/node/types/misc';
+import { IFs } from 'memfs';
 
 type UserProfile ={
    fileIds : string[];
@@ -24,6 +26,7 @@ export interface GlobalData {
     profileMap : Map<string,UserProfile>;
     deleteFileTimeMap : Map<string,number>; 
     fs : IFs;
+    id : string;
   }
   
   // 初始化全局变量（仅在服务器端运行）
@@ -41,6 +44,7 @@ export interface GlobalData {
       profileMap : new Map<string,UserProfile>(),
       deleteFileTimeMap : new Map<string,number>,
       fs : getSharedFs(),
+      id : generateId(),
     };
   }
 
@@ -137,7 +141,7 @@ export interface GlobalData {
   }
   
   // 启动定时任务（每分钟更新一次）
-  export function startDataCollection(intervalMs = 60_000) {
+  function startDataCollection(intervalMs = 60_000) {
     if (global.dataFetchInterval) {
         return;
         //clearInterval(global.dataFetchInterval); // 避免重复启动
@@ -193,19 +197,19 @@ function mkdirs(){
   console.log('mkdirs end');
 }  
   
-export async function initGlobalData(){
+async function initGlobalData(){
       mkdirs();
       traverse(UPLOAD_DIR);
-      const signer = getLocalSigner();//check mnemonic export for local signer
-      console.log('tranverse file info count ',globalData.fileMap.size);
       initFileBlobs(getServerSideSuiClient());
-      
+      console.log('tranverse file info count ',globalData.fileMap.size);
 }
 
+export  function initAll(){
+  initGlobalData();
+  startDataCollection();
+  console.log("globalData.initAll globalId=", globalData.id);
+}
 
-import type { IDirent } from 'memfs/lib/node/types/misc';
-import { getLocalSigner } from './tests/local_key';
-import { IFs } from 'memfs';
 // 递归遍历目录
 function traverse(currentDir: string) {
   const fs = getFs()

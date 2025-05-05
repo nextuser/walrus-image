@@ -2,7 +2,13 @@ import type { NextConfig } from "next";
 
 /** @type {import('next').NextConfig} */
 const nextConfig : NextConfig = {
-
+    experimental: {
+      nodeMiddleware: true,
+    },
+    turbopack: {
+       resolveExtensions: ['.mdx', '.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
+    },
+    
     images: {
         remotePatterns: [
           {
@@ -25,7 +31,7 @@ const nextConfig : NextConfig = {
           },
         ],
       },
-    webpack: (config, { isServer }) => {
+    webpack: (config, { isServer}) => {
         // 排除默认的 .wasm 文件处理规则
         config.module.rules.forEach((rule :any) => {
             (rule.oneOf || []).forEach((oneOf :any) => {
@@ -34,6 +40,8 @@ const nextConfig : NextConfig = {
                 }
             });
         });
+
+
 
         // 添加新的 .wasm 文件处理规则
         config.module.rules.push({

@@ -33,7 +33,7 @@ export default async  function Page() {
    const files = getFiles();
    ///console.log(headersList);
 
-       const copyContent = async (text:string) => {
+    const copyContent = async (text:string) => {
         try {
         await navigator.clipboard.writeText(text);
         console.log('Content copied to clipboard');

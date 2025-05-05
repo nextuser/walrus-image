@@ -4,7 +4,6 @@ import { FileInfo, UploadStatus ,WalrusInfo,FileBlobInfo} from "./types";
 import { Transaction,TransactionArgument ,TransactionObjectArgument} from "@mysten/sui/transactions";
 import config from '@/config/config.json'
 import { fromBase64, toBase64,fromBase58, toHex } from "@mysten/sui/utils";
-import bs58 from 'bs58';
 import * as parser from "./suiParser";
 import { GasCostSummary } from "@mysten/sui/client";
 import { ContentType } from "./content";
@@ -303,6 +302,18 @@ export  function getCreateProfileTx(amount_mist : bigint ) : Transaction|null{
     return tx;
 } 
 
+
+
+export  function getWithdrawTx() : Transaction{
+
+    const tx = new Transaction();
+    tx.moveCall({
+        target:`${config.pkg}::file_blob::withdraw`,
+        arguments:[tx.object(config.storage)]
+    })
+    tx.setGasBudget(1e7);
+    return tx;
+} 
 /**
  * //=================events ====================
 public struct ProfileCreated has copy,drop{

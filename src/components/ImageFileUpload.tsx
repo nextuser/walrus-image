@@ -20,11 +20,12 @@ import { getProfile,getStorage ,calcuate_fee} from '@/lib/utils/suiUtil';
 import {NumberInput} from '@/components/NumberInput'
 import { Input } from './ui/input';
 import { RechargePanel } from './RechargePanel';
+import { useStorage } from '@/app/storage_provider';
+import Link from 'next/link'
 
 export default  function ImageFileUpload(
   props:{fileUrl:string, 
         setFileUrl: (url :string)=>void
-        storage? :StorageType,
         owner : string,
         disabled : boolean,
         profile? : Profile |null}
@@ -62,7 +63,7 @@ export default  function ImageFileUpload(
     setPreview('');
   };
 
-
+  const storageIntf = useStorage();
 
   // const add_file_callback = {
   //   onSuccess: async (result:any) => {
@@ -107,7 +108,6 @@ export default  function ImageFileUpload(
         if(typeof file == 'string'){
           console.log("upload url ",file);
         }
-
         const response = await fetch(uploadUrl, {
           method: 'POST',
           mode : 'no-cors',
@@ -120,7 +120,7 @@ export default  function ImageFileUpload(
           await response.text().then((value)=>console.log("upload file response ",value))
           throw new Error('upload failed,!response.ok');
         }
-        if(!props.storage) return;
+        if(!storageIntf) return;
 
         const result = await response.json();
         if(owner){
@@ -143,10 +143,10 @@ export default  function ImageFileUpload(
   }
 
   const  profileUpdate = (profile : Profile|null, size : number) => {
-    if(!props.storage || !profile) { 
+    if(!storageIntf || !profile) { 
       return;
     } 
-    let neeedFee = calcuate_fee(props.storage.feeConfig, size)
+    let neeedFee = calcuate_fee(storageIntf.storage.feeConfig, size)
     let existBalance = Number(profile.balance);
     setLack(  neeedFee - existBalance)
   }
@@ -216,11 +216,10 @@ const handleUploadUrl = async () => {
 
 
   const afterCharged = (v ? :number) => {
-    if(!props.storage){
+    if(!storageIntf){
       return;
     }
-     set_recharge_amount(Number(v? v:0))
-
+    set_recharge_amount(Number(v? v:0))
   }
   
 
@@ -229,10 +228,11 @@ const handleUploadUrl = async () => {
   },[])
 
   useEffect(()=>{
-    if(!props.storage){
+    
+    if(!storageIntf){
       return;
     }
-    getProfile(suiClient,props.storage.profile_map.id.id.bytes,props.owner)
+    getProfile(suiClient,storageIntf.storage.profile_map.id.id.bytes,props.owner)
     .then((profile)=>{
       if(!profile || !imageDataUrl ){
         return ;
@@ -322,8 +322,9 @@ const handleUploadUrl = async () => {
       <div>
         <div><label>Need Recharge : {lack/1e9 } SUI</label> </div>
         <div><label>My    Balance : {balance/1e9} SUI</label></div>
-
-        <RechargePanel min={lack} max ={balance} owner={owner} onCharged={ afterCharged  }></RechargePanel>
+        <Link href='/profile?recharge=open'  className="text-blue-900 underline hover:no-underline visited:text-blue-300" >
+        Recharge
+        </Link>
       </div>}
       <Dialog.Close />
   

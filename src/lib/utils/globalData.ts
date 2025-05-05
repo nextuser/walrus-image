@@ -28,6 +28,7 @@ export interface GlobalData {
     deleteFileTimeMap : Map<string,number>; 
     fs : ImageFs;
     id : string;
+    inited : boolean;
   }
   
   // 初始化全局变量（仅在服务器端运行）
@@ -46,6 +47,7 @@ export interface GlobalData {
       deleteFileTimeMap : new Map<string,number>,
       fs : getSharedFs(),
       id : generateId(),
+      inited : false,
     };
   }
 
@@ -210,8 +212,12 @@ async function initGlobalData(){
 
 
 export  function initAll(){
+  if(globalData.inited){
+    return;
+  }
   initGlobalData();
   startDataCollection();
+  globalData.inited = true;
   console.log("globalData.initAll globalId=", globalData.id);
 }
 

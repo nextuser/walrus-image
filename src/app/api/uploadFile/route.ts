@@ -19,6 +19,7 @@ async function downloadImage(imageUrl: string): Promise<Buffer> {
 
 const suiClient = getServerSideSuiClient();
 export async function POST(request: Request) {
+    //startDataCollection()
     //c();  global init will startDataCollection
     console.log("upload/route.ts :post");
     try {

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { startDataCollection } from "@/lib/utils/globalData";
+// import { startDataCollection } from "@/lib/utils/globalData";
 
-// 只在服务器端启动
-if (typeof window === "undefined") {
-  startDataCollection(); // 默认每分钟更新一次
-}
+// // 只在服务器端启动
+// if (typeof window === "undefined") {
+//   startDataCollection(); // 默认每分钟更新一次
+// }
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

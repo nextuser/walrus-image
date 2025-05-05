@@ -110,7 +110,7 @@ export default function UploadPage() {
         {wallet_balance &&<label>Wallet  Balance: {wallet_balance/1e9} SUI</label> }
         <ImageFileUpload 
             fileUrl={imageUrl} setFileUrl = {afterUploaded}  disabled={ !profile  }
-            storage={storage} profile={profile} owner={acc.address}/>
+            profile={profile} owner={acc.address}/>
         <div>
         {imageUrl && 
         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href={imageUrl}

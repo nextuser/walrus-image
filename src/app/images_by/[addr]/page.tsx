@@ -36,7 +36,7 @@ export default function Page() {
 
     // 使用示例
    const account = useCurrentAccount();
-   const storage = useStorage();
+   const storage = useStorage()?.storage;
    const suiClient = useSuiClient();
    const [urls ,setUrls] = useState<FileUrl[]>([]);
    

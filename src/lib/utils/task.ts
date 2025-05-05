@@ -128,7 +128,7 @@ export function show_events(rsp : SuiTransactionBlockResponse){
 
 export async function processFiles() {
   const fs = getFs()
-  log("processFiles begin");
+  log("tasks processFiles begin globalId=",globalData.id);
   const files =  fs.readdirSync(UPLOAD_DIR);
   let totalSize = 0;
   let selectedFiles = new Set<string>();

@@ -211,7 +211,7 @@ async function initGlobalData(){
 }
 
 
-export  function initAll(){
+export  function initGlobalDataOnce(){
   if(globalData.inited){
     return;
   }

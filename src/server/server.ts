@@ -3,14 +3,14 @@ import { createServer,Server } from 'http';
 import { parse } from 'url';
 import next from 'next';
 import dotenv from 'dotenv';
-import { initAll} from '@/lib/utils/globalData';
+import { initGlobalDataOnce} from '@/lib/utils/globalData';
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
 dotenv.config();
 
-initAll();
+initGlobalDataOnce();
 
 const PORT = process.env.PORT || 3000;
 

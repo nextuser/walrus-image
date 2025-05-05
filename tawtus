@@ -1,0 +1,257 @@
+[1mdiff --git a/src/lib/utils/db.ts b/src/lib/utils/db.ts[m
+[1mindex 8e758e3..6718aab 100644[m
+[1m--- a/src/lib/utils/db.ts[m
+[1m+++ b/src/lib/utils/db.ts[m
+[36m@@ -152,7 +152,7 @@[m [mexport async function  initFileBlobs(sc : SuiClient){[m
+         cursor = events.nextCursor[m
+         for(let e of events.data){[m
+             let r = e.parsedJson as FileBlobAddResult;[m
+[31m-            console.log('initFielBlobs ,event',r);[m
+[32m+[m[32m            console.log('initFileBlobs ,event',r);[m
+             await sc.multiGetObjects({ids: r.fbo_ids, options:{showContent:true}}).then((values)=>{[m
+ [m
+                for(let value of values){[m
+[1mdiff --git a/src/lib/utils/globalData.ts b/src/lib/utils/globalData.ts[m
+[1mindex 89ec1d6..1f271a9 100644[m
+[1m--- a/src/lib/utils/globalData.ts[m
+[1m+++ b/src/lib/utils/globalData.ts[m
+[36m@@ -20,7 +20,7 @@[m [mtype UserProfile ={[m
+ }[m
+ [m
+ // 定义全局数据类型[m
+[31m-export interface GlobalData {[m
+[32m+[m[32minterface GlobalData {[m
+     lastUpdated: Date;[m
+     blobMap : Map<string,FileBlobInfo>;[m
+     fileMap : Map<string,FileInfo>;[m
+[36m@@ -33,13 +33,13 @@[m [mexport interface GlobalData {[m
+   [m
+   // 初始化全局变量（仅在服务器端运行）[m
+   declare global {[m
+[31m-    var globalData: GlobalData;[m
+[32m+[m[32m    var globalDataInner: GlobalData;[m
+     var dataFetchInterval: NodeJS.Timeout | undefined;[m
+   }[m
+   [m
+   // 初始化（防止重复初始化）[m
+[31m-  if (!global.globalData) {[m
+[31m-    global.globalData = {[m
+[32m+[m[32m  if (!global.globalDataInner) {[m
+[32m+[m[32m    global.globalDataInner = {[m
+       lastUpdated: new Date(0), // 初始化为很久以前[m
+       blobMap : new Map<string,FileBlobInfo>(),[m
+       fileMap : new Map<string,FileInfo>(),[m
+[36m@@ -52,54 +52,59 @@[m [mexport interface GlobalData {[m
+   }[m
+ [m
+   export function getFs() :ImageFs {[m
+[31m-     return global.globalData.fs[m
+[32m+[m[32m     return global.globalDataInner.fs[m
+   }[m
+ [m
+   export function getFileHashesFor(owner :string) : string[]{[m
+      let result : string[] = []; [m
+[31m-     let userProfile = globalData.profileMap.get(owner)[m
+[32m+[m[32m     let userProfile = getGlobalData().profileMap.get(owner)[m
+      if(!userProfile ){ [m
+         return result;[m
+      }[m
+      return userProfile.fileIds;[m
+   }[m
+   export function getFiles() :Array<FileInfo>{[m
+[31m-      return Array.from(global.globalData.fileMap.values());[m
+[32m+[m[32m      //initGlobalDataOnce();[m
+[32m+[m[32m      return Array.from(getGlobalData().fileMap.values());[m
+   }[m
+ [m
+   export function addFileId(owner : string , fileId:string){[m
+[31m-     let profile : UserProfile | undefined = globalData.profileMap.get(owner);[m
+[32m+[m[32m     let profile : UserProfile | undefined = globalDataInner.profileMap.get(owner);[m
+      if(!profile){[m
+         profile =  {[m
+           fileIds : [],[m
+         };[m
+[31m-        globalData.profileMap.set(owner,profile);[m
+[32m+[m[32m        globalDataInner.profileMap.set(owner,profile);[m
+      }[m
+      profile.fileIds.push(fileId);[m
+   }[m
+ [m
+   export function addFileInfo(file:FileInfo){[m
+[31m-      global.globalData.fileMap.set(file.hash,file);[m
+[32m+[m[32m    globalDataInner.fileMap.set(file.hash,file);[m
+   }[m
+ [m
+[32m+[m[32m  export function getGlobaDataId(){[m
+[32m+[m[32m    return globalDataInner.id;[m
+[32m+[m[32m  }[m
+ [m
+ [m
+   export function addFileBlobInfo(fileBlob : FileBlobInfo){[m
+[31m-     globalData.blobMap.set(fileBlob.hash,fileBlob);[m
+[31m-     globalData.fileMap.set(fileBlob.hash,toFileInfo(fileBlob))[m
+[32m+[m[32m    const data = globalDataInner;[m
+[32m+[m[32m    data.blobMap.set(fileBlob.hash,fileBlob);[m
+[32m+[m[32m    data.fileMap.set(fileBlob.hash,toFileInfo(fileBlob))[m
+   }[m
+ [m
+   export function hasFile(file:string) : boolean{[m
+[31m-    return global.globalData.fileMap.has(file) ;[m
+[32m+[m[32m    return getGlobalData().fileMap.has(file) ;[m
+   }[m
+ [m
+   export function getFileInfo(hash:string) :FileInfo | undefined{[m
+[31m-     return global.globalData.fileMap.get(hash)[m
+[32m+[m[32m     return getGlobalData().fileMap.get(hash)[m
+   }[m
+ [m
+ [m
+   export function registerFileBobInfo(hash : string,fbi : FileBlobInfo){[m
+[31m-      global.globalData.blobMap.set(hash,fbi);[m
+[32m+[m[32m    globalDataInner.blobMap.set(hash,fbi);[m
+   }[m
+ [m
+   /**[m
+[36m@@ -108,11 +113,11 @@[m [mexport interface GlobalData {[m
+    * @param now   time in ms , call new Date().getTime() to get[m
+    */[m
+   export function registerToDelete(path : string,now : number){[m
+[31m-    global.globalData.deleteFileTimeMap.set(path,now)[m
+[32m+[m[32m    globalDataInner.deleteFileTimeMap.set(path,now)[m
+   }[m
+ [m
+   export function getContentType(hash : string) : ContentType{[m
+[31m-    let fileInfo = global.globalData.fileMap.get(hash);[m
+[32m+[m[32m    let fileInfo = getGlobalData().fileMap.get(hash);[m
+     if(!fileInfo){[m
+       return ContentType.Unknown;[m
+     } else{[m
+[36m@@ -129,7 +134,7 @@[m [mexport interface GlobalData {[m
+     const fs = getFs()[m
+     console.log("delete old file for ",span_seconds, ' secs');[m
+     const now = new Date().getTime();[m
+[31m-    for(let [path  , time_ms] of globalData.deleteFileTimeMap ){[m
+[32m+[m[32m    for(let [path  , time_ms] of globalDataInner.deleteFileTimeMap ){[m
+       let from_add = now - time_ms ; [m
+       if(from_add > span_ms){[m
+          console.log('delete file timespan seconds',from_add/1000 ,path);[m
+[36m@@ -160,13 +165,14 @@[m [mexport interface GlobalData {[m
+ [m
+ export function getFileBlob(hash : string) [m
+                                 : FileBlobInfo | undefined{[m
+[31m-    return global.globalData.blobMap.get(hash);[m
+[32m+[m[32m    return getGlobalData().blobMap.get(hash);[m
+ }[m
+ [m
+   [m
+   // 获取当前数据[m
+   export function getGlobalData(): GlobalData {[m
+[31m-    return global.globalData;[m
+[32m+[m[32m    initGlobalDataOnce();[m
+[32m+[m[32m    return global.globalDataInner;[m
+   }[m
+   [m
+   // 停止数据采集（可选）[m
+[36m@@ -203,22 +209,20 @@[m [mfunction mkdirs(){[m
+ async function initGlobalData(){[m
+       mkdirs();[m
+       traverse(UPLOAD_DIR);[m
+[31m-      initFileBlobs(getServerSideSuiClient());[m
+[32m+[m[32m      await initFileBlobs(getServerSideSuiClient());[m
+       const signer = getSigner();//check mnemonic export for local signer[m
+[31m-      console.log('tranverse file info count ',globalData.fileMap.size);[m
+[31m-      [m
+[31m-      [m
+[32m+[m[32m      console.log('tranverse file info count ',globalDataInner.fileMap.size);[m
+ }[m
+ [m
+ [m
+[31m-export  function initAll(){[m
+[31m-  if(globalData.inited){[m
+[31m-    return;[m
+[32m+[m[32mexport  function initGlobalDataOnce(){[m
+[32m+[m[32m  if(globalDataInner.inited){[m
+[32m+[m[32m    return globalDataInner;[m
+   }[m
+   initGlobalData();[m
+   startDataCollection();[m
+[31m-  globalData.inited = true;[m
+[31m-  console.log("globalData.initAll globalId=", globalData.id);[m
+[32m+[m[32m  globalDataInner.inited = true;[m
+[32m+[m[32m  console.log("globalData.initGlobalDataOnce globalId=", globalDataInner.id);[m
+ }[m
+ [m
+ // 递归遍历目录[m
+[1mdiff --git a/src/lib/utils/task.ts b/src/lib/utils/task.ts[m
+[1mindex 33c18cb..08c9b46 100644[m
+[1m--- a/src/lib/utils/task.ts[m
+[1m+++ b/src/lib/utils/task.ts[m
+[36m@@ -1,5 +1,5 @@[m
+ import path from 'path';[m
+[31m-import {getFs} from '@/lib/utils/globalData';[m
+[32m+[m[32mimport {getFs, getGlobaDataId} from '@/lib/utils/globalData';[m
+ import {saveBlob , recordFileBlobInfo} from './db'; // 假设存在上传和保存信息的函数[m
+ import {getHash} from '@/lib/utils'[m
+ import tar from 'tar-stream';[m
+[36m@@ -128,7 +128,7 @@[m [mexport function show_events(rsp : SuiTransactionBlockResponse){[m
+ [m
+ export async function processFiles() {[m
+   const fs = getFs()[m
+[31m-  log("tasks processFiles begin globalId=",globalData.id);[m
+[32m+[m[32m  log("tasks processFiles begin globalId=",getGlobaDataId());[m
+   const files =  fs.readdirSync(UPLOAD_DIR);[m
+   let totalSize = 0;[m
+   let selectedFiles = new Set<string>();[m
+[1mdiff --git a/src/middleware.ts.old b/src/middleware.ts.old[m
+[1mdeleted file mode 100644[m
+[1mindex 865f0e3..0000000[m
+[1m--- a/src/middleware.ts.old[m
+[1m+++ /dev/null[m
+[36m@@ -1,26 +0,0 @@[m
+[31m-// middleware.ts[m
+[31m-// 显式指定 Node.js 运行时[m
+[31m-[m
+[31m-import { NextRequest, NextResponse } from 'next/server';[m
+[31m-import { initAll } from '@/lib/utils/globalData';[m
+[31m-// 模拟初始化数据[m
+[31m-[m
+[31m-// 在模块加载时初始化数据[m
+[31m-initAll();[m
+[31m-[m
+[31m-export function middleware(request: NextRequest) {[m
+[31m-    // 可以在中间件中使用初始化的数据[m
+[31m-    return NextResponse.next();[m
+[31m-}[m
+[31m-[m
+[31m-// 可以选择配置中间件的匹配路径[m
+[31m-export const config = {[m
+[31m-    matcher: [[m
+[31m-        /*[m
+[31m-         * 匹配所有路径，也可以指定特定路径，例如：[m
+[31m-         * '/api/:path*' 匹配所有 /api 开头的路径[m
+[31m-         */[m
+[31m-        '/((?!_next/static|_next/image|favicon.ico).*)'[m
+[31m-    ],[m
+[31m-    runtime: 'nodejs',[m
+[31m-};[m
+[1mdiff --git a/src/server/server.ts b/src/server/server.ts[m
+[1mindex bd5c0b9..a029338 100644[m
+[1m--- a/src/server/server.ts[m
+[1m+++ b/src/server/server.ts[m
+[36m@@ -3,14 +3,14 @@[m [mimport { createServer,Server } from 'http';[m
+ import { parse } from 'url';[m
+ import next from 'next';[m
+ import dotenv from 'dotenv';[m
+[31m-import { initAll} from '@/lib/utils/globalData';[m
+[32m+[m[32mimport { initGlobalDataOnce} from '@/lib/utils/globalData';[m
+ const dev = process.env.NODE_ENV !== 'production';[m
+ const app = next({ dev });[m
+ const handle = app.getRequestHandler();[m
+ [m
+ dotenv.config();[m
+ [m
+[31m-initAll();[m
+[32m+[m[32minitGlobalDataOnce();[m
+ [m
+ const PORT = process.env.PORT || 3000;[m
+ [m

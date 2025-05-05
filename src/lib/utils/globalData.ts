@@ -12,7 +12,7 @@ import {generateId, initFileBlobs} from '@/lib/utils/db';
 import { getServerSideSuiClient } from './tests/suiClient';
 import getSharedFs from '@/lib/imagefs'
 import type { IDirent } from 'memfs/lib/node/types/misc';
-import { getLocalSigner } from './tests/local_key';
+import { getSigner } from './tests/local_key';
 import { IFs } from 'memfs';
 
 type UserProfile ={
@@ -202,7 +202,7 @@ async function initGlobalData(){
       mkdirs();
       traverse(UPLOAD_DIR);
       initFileBlobs(getServerSideSuiClient());
-      const signer = getLocalSigner();//check mnemonic export for local signer
+      const signer = getSigner();//check mnemonic export for local signer
       console.log('tranverse file info count ',globalData.fileMap.size);
       
       

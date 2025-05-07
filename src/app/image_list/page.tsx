@@ -13,7 +13,13 @@ import { FileBlobEvents,Cursor } from "@/lib/utils/suiUtil";
 import { useSuiClient } from "@mysten/dapp-kit";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
-
+import { getBlobTarUrl } from "@/lib/utils";
+import { url } from "inspector";
+type UrlInfo = {
+    protocol: string,
+    host: string,
+    port: string,
+}
 export default function Page() {
 
       // 通过 headers() 获取请求头信息
@@ -25,20 +31,19 @@ export default function Page() {
    const suiClient = useSuiClient();
    const [ prevCursor ,setPrevCursor ] = useState();
 
-   const [urlInfo, setUrlInfo] = useState({
-        protocol: '',
-        host: '',
-        port: '',
-  });
+   const [urlInfo, setUrlInfo] = useState<UrlInfo>();
 
   // 在组件挂载时提取 URL 信息
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setUrlInfo({
+      const url : UrlInfo = {
         protocol: window.location.protocol, // 协议，如 "http:" 或 "https:"
         host: window.location.host,         // 主机，如 "localhost:3000" 或 "example.com"
         port: window.location.port,         // 端口，如 "3000" 或 ""（默认端口）
-      });
+      }
+      setUrlInfo(url);
+      console.log("setUrlInfo:",url);
+      console.log("location:",window.location)
     }
   }, []);
 
@@ -58,6 +63,8 @@ export default function Page() {
         }
     }
 
+    
+
     return (
         <div> 
         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href="/upload">
@@ -65,10 +72,10 @@ export default function Page() {
         </Link>
         <div className="grid grid-cols-2 gap-4 p-4">
             <div>
-                <ul>{ 
+                <ul>{ urlInfo  &&
                         fileBlobEvents.fileBlobs.map( (fileInfo:FileBlobInfo,index)=>{
                         //const type = getType(fileInfo)
-                        const imageUrl = `${urlInfo.protocol}://${urlInfo.host}/image/${fileInfo.hash}.${getExtTypeByContentType(fileInfo.contentType)}`;
+                        const imageUrl = getBlobTarUrl(urlInfo.protocol,urlInfo.host,fileInfo);
                         return (<li key={fileInfo.hash + String(index)}>
                             <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
                             target='_blank'
@@ -84,11 +91,11 @@ export default function Page() {
             
             </div>
             <div className="flex justify-start flex-wrap ">
-            {fileBlobEvents.fileBlobs.map( (fileInfo:FileBlobInfo,index)=>{
+            {urlInfo && fileBlobEvents.fileBlobs.map( (fileInfo:FileBlobInfo,index)=>{
                         const type = 'blob'
                         const key = fileInfo.hash + String(index);
                         const fileName = `${fileInfo.hash}.${getExtTypeByContentType(fileInfo.contentType)}`;
-                        const imageUrl = `${urlInfo.protocol}://${urlInfo.host}/image/${fileName}`;
+                        const imageUrl =  getBlobTarUrl(urlInfo.protocol,urlInfo.host,fileInfo);
                         return (
                         <div key={key}  >
                             <Link href={`/imageView/${fileName}`} >

@@ -11,6 +11,7 @@ import { useStorage } from "@/app/storage_provider";
 import { FileBlobType } from "@/lib/utils/suiParser";
 import { u256_to_hash } from "@/lib/utils/convert";
 import { FileUrl } from "@/lib/utils/types";
+import { stringify } from "querystring";
 // function getType(fileInfo:FileInfo){
     
 //     let status = getFileBlob(fileInfo.hash);
@@ -63,9 +64,10 @@ export default function Page() {
     return (
         <div>
             <ul>{ 
-                    urls.map( (fileUrl:FileUrl)=>{
+                    urls.map( (fileUrl:FileUrl,index:number)=>{
                     const hash = fileUrl.name;
-                    return (<li key={hash}>
+                    const key = hash + String(index)
+                    return (<li key={key}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
                         target='_blank'
                         key = {hash}

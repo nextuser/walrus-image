@@ -41,7 +41,7 @@ async function download( uploadId:string, outPath : string){
 }
 
 const zone8_ms = 8 * 60 * 60 * 1000;
-async function queryVaults(){
+async function queryFiles(){
   ///await tusky.auth.signIn();
    tusky.file.listAll().then( (files)=>{
       for(let  [i,v] of files.entries()){
@@ -52,7 +52,7 @@ async function queryVaults(){
         console.log('blobId',v.blobId)
         
       }
-      console.log('queryVaults count', files.length)
+      console.log('queryFiles count', files.length)
    })
 }
 
@@ -66,13 +66,13 @@ async  function test_upload_download(){
 
 
 // test().then( ()=>
-//   queryVaults()
+//   queryFiles()
 // )
 
 async function tests(){
   //tusky.auth.signIn();
   //await test_upload_download();
-  await queryVaults();
+  await queryFiles();
 }
 
 

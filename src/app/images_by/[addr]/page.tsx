@@ -1,17 +1,23 @@
 'use client'
 import { blob } from "stream/consumers";
-import { getExtTypeByContentType } from "@/lib/utils/content";
+import { getExtensionFromMimeType, getExtTypeByContentType } from "@/lib/utils/content";
 import Link from 'next/link';
 import { FileInfo } from "@/lib/utils/types";
 //import { getFileBlob } from "@/lib/utils/globalData";
-import { getFileBlobsFor,getProfile, getStorage } from "@/lib/utils/suiUtil";
+import { getProfile, getStorage } from "@/lib/utils/suiUtil";
 import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
 import { useEffect,useState } from "react";
 import { useStorage } from "@/app/storage_provider";
-import { FileBlobType } from "@/lib/utils/suiParser";
-import { u256_to_hash } from "@/lib/utils/convert";
 import { FileUrl } from "@/lib/utils/types";
-import { stringify } from "querystring";
+import { getTuskyFilesFor } from "@/lib/tusky/tusky_server";
+import { File as TuskyFile ,Paginated} from '@tusky-io/ts-sdk';
+import { getSiteUrl } from "@/lib/client/urlUtil";
+import { updateUrlInfo,UrlInfo } from "@/lib/client/urlUtil";
+import { getImageSiteUrl } from "@/lib/utils";
+import { getTuskySiteUrl } from "@/lib/tusky/tusky_common";
+import { Button } from "@/components/ui/button";
+import { Profile } from "@/lib/utils/suiTypes";
+
 // function getType(fileInfo:FileInfo){
     
 //     let status = getFileBlob(fileInfo.hash);
@@ -39,45 +45,71 @@ export default function Page() {
    const account = useCurrentAccount();
    const storage = useStorage()?.storage;
    const suiClient = useSuiClient();
-   const [urls ,setUrls] = useState<FileUrl[]>([]);
-   
-   
-   useEffect(()=>{
-        if(!account || !storage) {
+   const [files ,setFiles] = useState<TuskyFile[]>([]);
+   const [nextToken,setNextToken] = useState<string>();
+   const [urlInfo,setUrlInfo] = useState<UrlInfo>()
+   const [profile,setProfile] = useState<Profile>()
+
+   const queryProfile = async ()=>{
+    if(!account || !storage) {
+        return;
+    }
+    const parentId = storage.profile_map.id.id.bytes
+    let profile = await getProfile(suiClient,parentId,account.address);
+   }
+   const query_files = async ()=>{
+
+        if(!profile){
             return;
         }
-        const parentId = storage.profile_map.id.id.bytes
-        fetch( "/api/files_for?owner=" + encodeURIComponent(account.address),{
-            method : 'GET',
-        }).then((rsp)=>{
+        let url = `/api/files_for?vault_id=${encodeURIComponent(profile.vault_id)}`
+        if(nextToken){
+            url += `&next=${encodeURIComponent(nextToken)}`
+        }
+
+        fetch( url,{ method : 'GET', }).then((rsp)=>{
             if(!rsp.ok) {
-                setUrls([]);
+                rsp.json().then((value)=>{
+                    let pe = value.data as Paginated<TuskyFile>
+                    setFiles(pe.items)
+                    setNextToken(pe.nextToken)
+                })
                 return;
+            } else{
+                console.error('query fail', rsp.status, url);
             }
-            rsp.json().then((value)=>{
-                setUrls(value.data as FileUrl[])
-            })
         })
-  
+            
+    };
+   useEffect(()=>{
+        queryProfile();
+        updateUrlInfo(setUrlInfo);
    },[account]);
+
+   useEffect(()=>{
+    query_files();
+   },[profile])
 
     return (
         <div>
             <ul>{ 
-                    urls.map( (fileUrl:FileUrl,index:number)=>{
-                    const hash = fileUrl.name;
-                    const key = hash + String(index)
-                    return (<li key={key}>
+                    files.map( (file:TuskyFile,index:number)=>{
+                    const siteUrl = getSiteUrl(urlInfo);
+                    const fileUrl = getTuskySiteUrl(siteUrl,file)
+                    const file_id =  file.id
+                    const type = getExtensionFromMimeType(file.mimeType);
+                    return (<li key={file_id}>
                         <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" 
                         target='_blank'
-                        key = {hash}
-                        href={fileUrl.url} >
-                            {hash}
-                        </Link> <label>{fileUrl.type}</label>
+                        key = {file_id}
+                        href={fileUrl} >
+                            {file_id}
+                        </Link> <label>{type}</label>
                     </li>)
                     })
                 }
             </ul>
+            <Button className="text-blue-900 underline hover:no-underline visited:text-blue-300" onClick={query_files} >next</Button>
             <Link className="text-blue-900 underline hover:no-underline visited:text-blue-300" href="/upload">Upload</Link>
         </div>
     )

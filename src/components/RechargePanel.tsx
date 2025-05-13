@@ -7,8 +7,6 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { getRechargeTx } from '@/lib/utils/suiUtil';
 import { useState } from 'react';
-import {Slider} from '@/components/ui/slider'
-import { show_events } from '@/lib/utils/task';
 import { getCost } from '@/lib/utils/suiUtil';
 import {
   Collapsible,

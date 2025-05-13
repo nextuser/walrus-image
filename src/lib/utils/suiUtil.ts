@@ -1,13 +1,11 @@
 import { PaginatedEvents, SuiClient,EventId } from "@mysten/sui/client";
 import { SuiTransactionBlockResponse ,    DryRunTransactionBlockResponse} from '@mysten/sui/client'
-import { FileInfo, UploadStatus ,WalrusInfo,FileBlobInfo} from "./types";
+import { FileInfo, UploadStatus ,WalrusInfo} from "./types";
 import { Transaction,TransactionArgument ,TransactionObjectArgument} from "@mysten/sui/transactions";
 import config from '@/config/config.json'
 import { fromBase64, toBase64,fromBase58, toHex } from "@mysten/sui/utils";
 import * as parser from "./suiParser";
 import { GasCostSummary } from "@mysten/sui/client";
-import {FileBlobObjectType, FileBlobType} from '@/lib/utils/suiParser'
-import { getBlobTarUrl } from "../utils";
 import { ContentType } from "./content";
 import * as sp from "./suiParser";
 import { bcs } from "@mysten/bcs";
@@ -16,27 +14,27 @@ import { u256_to_blobId,u256_to_hash,
          hash_to_u256,blobId_to_u256 
         } from "@/lib/utils/convert";
 import { Keypair } from "@mysten/sui/cryptography";
-import { FileBlob,FileBlobAddResult,Profile,
+import { FileBlobAddResult,Profile,
         DynamicField,Struct,Address } from "./suiTypes";
-import { profile } from "console";
 /**
  * 
 entry fun add_file(storage : &mut Storage,
                     owner : address,
-                    file_id :u256,
+                    file_id :String,
+                    mime_type : u8,
                     size : u32,
-                    ctx : & TxContext){
+                    ctx : & mut TxContext)
  */
 
-export  function getAddFileTx(owner :string,hash : string,size :number){
-    const file_id = hash_to_u256(hash);
+export  function getAddFileTx(owner :string,file_id : string,mime_type : number, size :number){
     console.log(`file_blob::add_file( storage, owner: ${owner}, file:${file_id})`);
     const tx = new Transaction();
     tx.moveCall({
         target:`${config.pkg}::file_blob::add_file`,
         arguments:[tx.object(config.storage),
             tx.pure.address(owner),
-            tx.pure.u256(file_id),
+            tx.pure.string(file_id),
+            tx.pure.u8(mime_type),
             tx.pure.u32(size)
         ]
        
@@ -94,39 +92,39 @@ entry fun add_file_blob(
  * @returns 
  */
 
- export function getAddBlobTx( blobIdStr :string,fileBlobs: FileBlobInfo[]) : Transaction | null{
-    const tx = new Transaction();
-    const file_ids:TransactionObjectArgument[] = [];
-    const owners : TransactionObjectArgument[] = [];
-    const starts:TransactionObjectArgument[] = [];
-    const ends:TransactionObjectArgument[] = [];
-    const mime_types:TransactionObjectArgument[] = [];
-    for(let fileBlob of fileBlobs){
-        const file_id = hash_to_u256(fileBlob.hash)
-        console.log('file_id',file_id);
-        file_ids.push(tx.pure.u256(file_id));
-        starts.push(tx.pure.u32(fileBlob.range.start));
-        ends.push(tx.pure.u32(fileBlob.range.end));
-        mime_types.push(tx.pure.u8(fileBlob.contentType));
-    }
+//  export function getAddBlobTx( blobIdStr :string,fileBlobs: FileBlobInfo[]) : Transaction | null{
+//     const tx = new Transaction();
+//     const file_ids:TransactionObjectArgument[] = [];
+//     const owners : TransactionObjectArgument[] = [];
+//     const starts:TransactionObjectArgument[] = [];
+//     const ends:TransactionObjectArgument[] = [];
+//     const mime_types:TransactionObjectArgument[] = [];
+//     for(let fileBlob of fileBlobs){
+//         const file_id = hash_to_u256(fileBlob.hash)
+//         console.log('file_id',file_id);
+//         file_ids.push(tx.pure.u256(file_id));
+//         starts.push(tx.pure.u32(fileBlob.range.start));
+//         ends.push(tx.pure.u32(fileBlob.range.end));
+//         mime_types.push(tx.pure.u8(fileBlob.contentType));
+//     }
     
-    const blobId = blobId_to_u256(blobIdStr);
-    console.log('blobId', blobId,' from ',blobIdStr);
-    tx.moveCall({
-        target:`${config.pkg}::file_blob::add_file_blob`,
-        arguments:[
-            tx.object(config.storage),//Storage
-            tx.pure.u256(blobId),//blob_id
-            tx.makeMoveVec({ type:'u256', elements: file_ids}),
-            tx.makeMoveVec({ type:'u8',elements: mime_types}),//mime_types
-            tx.makeMoveVec({ type:'u32',elements: starts}),//starts
-            tx.makeMoveVec({ type:'u32',elements: ends})//ends
-            ]
-    });
+//     const blobId = blobId_to_u256(blobIdStr);
+//     console.log('blobId', blobId,' from ',blobIdStr);
+//     tx.moveCall({
+//         target:`${config.pkg}::file_blob::add_file_blob`,
+//         arguments:[
+//             tx.object(config.storage),//Storage
+//             tx.pure.u256(blobId),//blob_id
+//             tx.makeMoveVec({ type:'u256', elements: file_ids}),
+//             tx.makeMoveVec({ type:'u8',elements: mime_types}),//mime_types
+//             tx.makeMoveVec({ type:'u32',elements: starts}),//starts
+//             tx.makeMoveVec({ type:'u32',elements: ends})//ends
+//             ]
+//     });
 
-    tx.setGasBudget(1e8);
-    return tx;
-}
+//     tx.setGasBudget(1e8);
+//     return tx;
+// }
 
 export function calcuate_fee(  config : parser.FeeConfigType, size : number) : number{
     let kbs = size >> 10;
@@ -206,61 +204,61 @@ export async function  getProfileId(suiClient :SuiClient, owner :string) : Promi
 
 
 
-export async function getFileBlobsFor(suiClient : SuiClient,
-                                owner:string): Promise<parser.FileBlobType[]>{
+// export async function getFileBlobsFor(suiClient : SuiClient,
+//                                 owner:string): Promise<parser.FileBlobType[]>{
                                 
-    const tx = new Transaction();
-    tx.moveCall({
-        target : `${config.pkg}::file_blob::get_file_blobs`,
-        arguments: [tx.object(config.storage), tx.pure.address(owner)]
-    })
-    tx.setGasBudget(1e8);
-    console.log('file_blob::get_file_blobs for owner',owner);
-    let rsp = await suiClient.devInspectTransactionBlock({transactionBlock:tx, sender : owner});
-    const fb_ids :string[] = [];
-    if(rsp.effects?.status.status == 'success' && rsp.results){
-        for( let result of rsp.results){
-            if(!result.returnValues){
-                console.log('no returnvalues');
-                continue;
-            } 
-            for(let rv of result.returnValues){
-                console.log('rv ',rv[0]);
-                if(rv[0].length == 1 && rv[0][0] == 0){
-                    continue;
-                }
-                console.log('type:',rv[1]);
-                let ret = parser.Vector_Address.parse(new Uint8Array(rv[0]));
-                for(let a of ret){
-                    if(fb_ids.indexOf(a) == -1){
-                        fb_ids.push(a);
-                    }
-                }
-            }
-        }
-    }
-    console.log('get object ids ',fb_ids);
-    if(fb_ids.length == 0){
-        console.log('get profile images ids', rsp);
-        return []; 
-    }
-    return getFileObjectsByIds(suiClient,fb_ids);
-}
+//     const tx = new Transaction();
+//     tx.moveCall({
+//         target : `${config.pkg}::file_blob::get_file_blobs`,
+//         arguments: [tx.object(config.storage), tx.pure.address(owner)]
+//     })
+//     tx.setGasBudget(1e8);
+//     console.log('file_blob::get_file_blobs for owner',owner);
+//     let rsp = await suiClient.devInspectTransactionBlock({transactionBlock:tx, sender : owner});
+//     const fb_ids :string[] = [];
+//     if(rsp.effects?.status.status == 'success' && rsp.results){
+//         for( let result of rsp.results){
+//             if(!result.returnValues){
+//                 console.log('no returnvalues');
+//                 continue;
+//             } 
+//             for(let rv of result.returnValues){
+//                 console.log('rv ',rv[0]);
+//                 if(rv[0].length == 1 && rv[0][0] == 0){
+//                     continue;
+//                 }
+//                 console.log('type:',rv[1]);
+//                 let ret = parser.Vector_Address.parse(new Uint8Array(rv[0]));
+//                 for(let a of ret){
+//                     if(fb_ids.indexOf(a) == -1){
+//                         fb_ids.push(a);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     console.log('get object ids ',fb_ids);
+//     if(fb_ids.length == 0){
+//         console.log('get profile images ids', rsp);
+//         return []; 
+//     }
+//     return getFileObjectsByIds(suiClient,fb_ids);
+// }
 
-async function getFileObjectsByIds(suiClient:SuiClient,fb_ids : string[]): Promise<parser.FileBlobType[]>{
-    let objectRsps = await suiClient.multiGetObjects({
-        ids:fb_ids,
-        options:{showBcs:true}
-    })
-    let fbs : parser.FileBlobType[] = [];
-    for(let o of objectRsps){
-        if(o.data?.bcs?.dataType == 'moveObject'){
-            let fbo = parser.FileBlobObject.parse(fromBase64(o.data.bcs.bcsBytes)).file_blob;
-            fbs.push(fbo);
-        }
-    }
-    return fbs;
-}
+// async function getFileObjectsByIds(suiClient:SuiClient,fb_ids : string[]): Promise<parser.FileBlobType[]>{
+//     let objectRsps = await suiClient.multiGetObjects({
+//         ids:fb_ids,
+//         options:{showBcs:true}
+//     })
+//     let fbs : parser.FileBlobType[] = [];
+//     for(let o of objectRsps){
+//         if(o.data?.bcs?.dataType == 'moveObject'){
+//             let fbo = parser.FileBlobObject.parse(fromBase64(o.data.bcs.bcsBytes)).file_blob;
+//             fbs.push(fbo);
+//         }
+//     }
+//     return fbs;
+// }
 
 
 // export  function getProfile(suiClient :SuiClient, owner :string) : Promise<string | null>{
@@ -289,16 +287,17 @@ async function getFileObjectsByIds(suiClient:SuiClient,fb_ids : string[]): Promi
 
 const PROFILE_CREATE_COST :bigint = 10_000_000n; 
 //entry fun create_profile(storage : &mut Storage,coin : Coin<SUI>,ctx :&mut TxContext)
-export  function getCreateProfileTx(amount_mist : bigint ) : Transaction|null{
+export  function getCreateProfileTx(amount_mist : bigint ,vault_id : string) : Transaction|null{
     if(amount_mist < PROFILE_CREATE_COST){
         console.log(`arg amout_mist invalid,less than ${PROFILE_CREATE_COST}`);
         return null;
     };
     const tx = new Transaction();
+    console.log("getCreateProfileTx amount,vault_id",amount_mist,vault_id);
     let new_coin = tx.splitCoins(tx.gas,[amount_mist]);
     tx.moveCall({
         target:`${config.pkg}::file_blob::create_profile`,
-        arguments:[tx.object(config.storage),new_coin]
+        arguments:[tx.object(config.storage),new_coin, tx.pure.string(vault_id)]
     })
     tx.setGasBudget(1e7);
     return tx;
@@ -359,12 +358,13 @@ async function dryrun(suiClient : SuiClient,tx : Transaction):Promise<DryRunTran
  * 添加File  , 在server 端
  */
 export async function addFile(suiClient : SuiClient,signer: Keypair,
-                            owner: string, hash : string ,size : number): Promise<bigint>{
+                            owner: string, file_id : string ,
+                            contentType : number,size : number): Promise<bigint>{
     if(signer.getPublicKey().toSuiAddress() != config.operator){
         console.error('operator error: ',config.operator, ' manager:',signer.getPublicKey().toSuiAddress);
         return 0n;
     }
-    let tx = getAddFileTx(owner ,hash,size);
+    let tx = getAddFileTx(owner ,file_id,contentType,size);
     const rsp = await suiClient.signAndExecuteTransaction({
         transaction: tx,
         signer : signer,
@@ -386,42 +386,42 @@ export async function addFile(suiClient : SuiClient,signer: Keypair,
  * 添加 FielBlobObject  在服
  * 后台任务task.ts  storage.manager 执行
  */
-export async function addFileBlob(suiClient:SuiClient,blobId:string,blobs :FileBlobInfo[],signer :Keypair){
+// export async function addFileBlob(suiClient:SuiClient,blobId:string,blobs :FileBlobInfo[],signer :Keypair){
     
-    let tx = getAddBlobTx(blobId,blobs);
-    if(!tx){
-        console.error('get tx failed ');
-        return;
-    }
-    return suiClient.signAndExecuteTransaction({
-        transaction:tx,
-        signer,
-        options:{showEvents:true,showEffects:true}
-    }).then((rsp)=>{
-        if(rsp.effects?.status?.status == 'success' ){
-            const gasCost = getCost(rsp.effects.gasUsed);
-            console.log('addFileBlob succ  :cost=',Number(gasCost)/1e9);
+//     let tx = getAddBlobTx(blobId,blobs);
+//     if(!tx){
+//         console.error('get tx failed ');
+//         return;
+//     }
+//     return suiClient.signAndExecuteTransaction({
+//         transaction:tx,
+//         signer,
+//         options:{showEvents:true,showEffects:true}
+//     }).then((rsp)=>{
+//         if(rsp.effects?.status?.status == 'success' ){
+//             const gasCost = getCost(rsp.effects.gasUsed);
+//             console.log('addFileBlob succ  :cost=',Number(gasCost)/1e9);
 
-            if(!rsp.events){
-                console.log('addFileBlob no event ');
-                return gasCost;
-            }
-            for(let e of rsp.events){
-                if(e.type == `${config.pkg}::file_blob::FileBlobAddResult`){
-                   let result =  e.parsedJson as FileBlobAddResult;
-                   if(result.fbo_ids.length > 0){
-                    console.log(`filblob add  sender ${signer.getPublicKey().toSuiAddress()},fbo id :${result.fbo_ids[0]}`);
-                   }
-                }
-                console.log('event content :',e.type, e.parsedJson );
-            }   
-            return gasCost;
-        } else{
-            console.error('fail to addFileBlob',rsp);
-            return 0n;
-        }
-    })
-}
+//             if(!rsp.events){
+//                 console.log('addFileBlob no event ');
+//                 return gasCost;
+//             }
+//             for(let e of rsp.events){
+//                 if(e.type == `${config.pkg}::file_blob::FileBlobAddResult`){
+//                    let result =  e.parsedJson as FileBlobAddResult;
+//                    if(result.fbo_ids.length > 0){
+//                     console.log(`filblob add  sender ${signer.getPublicKey().toSuiAddress()},fbo id :${result.fbo_ids[0]}`);
+//                    }
+//                 }
+//                 console.log('event content :',e.type, e.parsedJson );
+//             }   
+//             return gasCost;
+//         } else{
+//             console.error('fail to addFileBlob',rsp);
+//             return 0n;
+//         }
+//     })
+// }
 
 /*
 
@@ -484,7 +484,8 @@ export async function getProfile(sc : SuiClient,
     if( rsp.data?.content?.dataType == 'moveObject'){
         
         const f = rsp.data.content.fields as unknown as DynamicField<Address,Struct<Profile>>;
-        console.log("getDynamicProfile:profile fields",f.id.id,f.value.fields.balance, f.value.fields.file_ids);
+        console.log("getDynamicProfile:profile fields",f.id.id,f.value.fields.balance, f.value.fields.file_ids, f.value.fields.vault_id);
+        console.log("vault_id", f.value.fields.vault_id);
         return f.value.fields;
     } else{
         console.log('no data for owner:',owner);
@@ -512,55 +513,87 @@ export async  function queryFileInfoObjects(suiClient:SuiClient, profileId:strin
     })
    
 }*/
+
+import { FileData , FileAdded} from "./types";
+import { FileAddedType } from "./suiParser";
+import { resourceLimits } from "worker_threads";
 export type Cursor = EventId|undefined|null
-export type FileBlobEvents  ={
-    fileBlobs : FileBlobInfo[];
-    prev? : Cursor;
-    cursor? : Cursor
-    next ? : Cursor
+export type FileDataEvents  ={
+    fileDatas : FileData[];
+    cursors : Cursor[];
+    cursorIndex : number;
 }
 
-export function emptyFileBlobEvents(){
-    return { fileBlobs:[],cursor : undefined, }
+export function hasNext(events :FileDataEvents){
+    return events.cursors.length > events.cursorIndex
 }
 
-export async function  queryFileBlobEvents(sc : SuiClient, cursor ? : EventId|null) : Promise<FileBlobEvents>{
+export function emptyFileDataEvents() : FileDataEvents{
+    return { fileDatas:[],cursors : [], cursorIndex : -1 }
+}
+
+export async function  queryFileDataEvents(sc : SuiClient, next:boolean = true,previous ? : FileDataEvents, ) : Promise<FileDataEvents>{
+    const   result = emptyFileDataEvents();
     if(!sc) {
-        return  emptyFileBlobEvents();
+        return  result
     }
-    let result :FileBlobEvents = emptyFileBlobEvents();
     
-    let events = await sc.queryEvents({query:{MoveEventType:`${config.pkg}::file_blob::FileBlobAddResult`},cursor})
-    result.cursor = cursor
-    result.next = events.nextCursor
-    const ids : string[] = [];
-    for(let e of events.data){
-        let r = e.parsedJson as FileBlobAddResult;
-        console.log('initFielBlobs ,event',r);
-        ids.push(... r.fbo_ids)
-    }
-
-    let values = await sc.multiGetObjects({ids, options:{showContent:true}})
-    for(let value of values){
-        //console.log('value',value)
-        if(value.data?.content?.dataType == 'moveObject'){
-            //console.log('initFileBlobs fields', value.data.content.fields);
-            let fbo = value.data.content.fields as FileBlobObjectType;
-            //console.log('fbo', fbo);
-            let fb = (fbo.file_blob as unknown as Struct<FileBlobType>).fields;
-            let f :FileBlobInfo = {
-                hash : u256_to_hash(BigInt(fb.file_id)),
-                status :{
-                    on_walrus : true,
-                    walrus_info : {blobId : u256_to_blobId(BigInt(fb.blob_id))},
-                },
-                contentType : fb.mime_type,
-                range : { start : fb.start, end : fb.end}
-            }
-            //console.log('addFileBlobInfo',f);
-            result.fileBlobs.push(f);
+    // let result :FileDataEvents = emptyFileBlobEvents();
+    let cursor = undefined;
+    if(previous ){
+        let index = next ?  previous.cursorIndex  : previous.cursorIndex - 2;
+        if(index < previous.cursors.length  && index >= 0){
+            cursor = previous.cursors[index]
         }
     }
+
+    
+    let events = await sc.queryEvents({query:{MoveEventType:`${config.pkg}::file_blob::FileAdded`},cursor})
+   
+    const ids : string[] = [];
+    for(let e of events.data){
+        let r = e.parsedJson as FileAdded;
+        console.log('fileadded',r.file_data.vault_id,r.file_data.file_id);
+        console.log('FileAdded,event',r);
+        result.fileDatas.push(r.file_data);
+    }
+
+    if(previous){
+        previous.cursors.forEach((value) =>result.cursors.push(value));
+        result.cursorIndex = next ? previous.cursorIndex + 1 : previous.cursorIndex - 1;
+        
+    } else{
+        result.cursorIndex = 0;
+
+    }
+    if(next && events.hasNextPage){
+        result.cursors.push(events.nextCursor)
+    }
+    
+
+    // let values = await sc.multiGetObjects({ids, options:{showContent:true}})
+    // for(let value of values){
+    //     //console.log('value',value)
+    //     if(value.data?.content?.dataType == 'moveObject'){
+    //         console.log('filedata event  fields', value.data.content.fields);
+    //         //value.data.content.fields as parser.FileAddedType
+           
+    //         let fat = value.data.content.fields as FileAddedType;
+    //         //console.log('fbo', fbo);
+    //         let fd = fat.file_data;
+    //         let f :FileData = {
+    //             vault_id : fd.vault_id,
+    //             file_id : fd.file_id,
+    //             owner : fd.owner,
+    //             mime_type : fd.mime_type,
+    //             size : fd.size,
+    //         }
+    //         //console.log('addFileBlobInfo',f);
+    //         result.fileDatas.push(f);
+    //     }
+    // }
     return result;
 }
+
+
 

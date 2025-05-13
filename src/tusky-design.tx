@@ -1,0 +1,39 @@
+# 1. add profile
+owenr =》 vault
+sui balance
+
+# 2. upload:
+## tusky：
+
+uploadId = await tusky.file.upload(owner, {name, mime-type, size} )
+
+## sui
+move-call addFile(profile,uploadId)
+profile transfer to storage
+
+### event:
+
+addFileEvent
+
+owner,(u256 bigInt toString(16))
+uploadId,
+
+event:  vaultid ,fileid
+
+
+## 3. my files 
+image_by/owner
+查询vault 下的file list
+
+owner =>vaultid
+
+
+## 4. image_list
+events
+
+修改events 
+
+
+根据owner查询
+
+ 

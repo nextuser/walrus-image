@@ -1,34 +1,31 @@
 import { getImageUrl } from "@/lib/utils";
-import { getFileHashesFor, getFileInfo } from "@/lib/utils/globalData";
+// import { getFileHashesFor, getFileInfo } from "@/lib/utils/globalData";
 import {FileUrl} from '@/lib/utils/types'
 import { NextResponse } from "next/server";
-import { getTypeUrl } from "@/lib/utils/globalData";
+import { getServerTusky, getTuskyUrl } from "@/lib/tusky/tusky_server";
+import { getExtensionFromMimeType } from "@/lib/utils/content";
+import { getTuskyFilesFor } from "@/lib/tusky/tusky_server";
+import { getProfile } from "@/lib/utils/suiUtil";
+import { getServerSideSuiClient } from "@/lib/utils/tests/suiClient";
 export async function GET(request: Request) {
+    const tusky = getServerTusky();
     const urls : FileUrl[] = [];
     const url = new URL(request.url);
-    const owner : string = url.searchParams.get('owner') as string
-    console.log('owner:',owner);
+    const vault_id : string = url.searchParams.get('vault_id') as string
+    const next : string = url.searchParams.get('next') as string;
+    const sc = getServerSideSuiClient();
+   // let profile = await getProfile(sc,)
+    console.log('owner:',vault_id);
     console.log('url',request.url);
-    if(!owner){
-        return NextResponse.json({message: 'bad arg owner'}, {status : 500});
+    if(!vault_id){
+        return NextResponse.json({message: 'bad arg vault_id'}, {status : 500});
     }
-    const ids = getFileHashesFor(owner);
+
+    const pe = await  getTuskyFilesFor(vault_id,next)
+    if(pe.errors){
+        console.error("getTuskyFilesFor error",pe.errors);
+        return NextResponse.json({message : 'getTuskyFilesFor error '},{status:500});
+    }
     
-    console.log(ids );
-    for(let id of ids){
-        let fileInfo = getFileInfo(id)
-        if(!fileInfo){
-            console.error("fail to find fileInfo for ",id)
-            continue;
-        }
-        const [type,url] = getTypeUrl(request ,fileInfo)
-        
-        
-        urls.push({
-            name : id,
-            type,
-            url : url
-        })
-    }
-    return NextResponse.json({ data : urls},{status:200})
+    return NextResponse.json({ result : pe},{status:200})
 }

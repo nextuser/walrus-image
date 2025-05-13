@@ -10,7 +10,6 @@ import { Button } from './ui/button';
 import { useSuiClient,useCurrentAccount } from '@mysten/dapp-kit';
 import {  getProfileId, getRechargeTx, isBalanceEnough } from '@/lib/utils/suiUtil';
 import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
-import { getCreateProfileTx,getAddFileTx } from '@/lib/utils/suiUtil';
 import { FileInfo } from '@/lib/utils/types';
 import config from '@/config/config.json'
 import { Profile } from '@/lib/utils/suiTypes';

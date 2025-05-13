@@ -6,6 +6,7 @@ use sui::event::emit;
 use sui::sui::SUI;
 use sui::balance::{Self,Balance};
 use sui::coin::Coin;
+use std::ascii::String;
 
 const CONTRACT_COST : u64 = 2_400_000;
 const CONTRACT_FEE : u64 = 3_000_000;
@@ -20,26 +21,7 @@ const PRICE_WAL_TO_SUI_1000 : u64 = 172;
 //     size : u32
 // }
 
-public struct FileBlob has store,copy,drop{
-    file_id : u256,
-    blob_id : u256,
-    start : u32,
-    end : u32,
-    mime_type : u8,
-}
 
-public struct  FileBlobObject has key{
-    id: UID,
-    file_blob : FileBlob
-} 
-
-public struct FileAdded has copy,drop{
-    file_hash : u256,
-    owner : address,
-    size : u32,
-    is_new : bool,
-    cost : u64,
-}
 /**
 保证每个用户一个profile，方便遍历所有profile
 */
@@ -59,10 +41,9 @@ public struct Storage has key,store{
     manager : address,
     balance : Balance<SUI>,
     feeConfig : FeeConfig,
+    
     //owner => profile address
     profile_map : Table<address,Profile>,
-    //file hash => FileBlobObject id
-    file_blob_map : Table<u256,address>
 }
 
 
@@ -73,20 +54,35 @@ public struct Profile has key ,store{
     id : UID,
     owner : address,
     balance : Balance<SUI>,
-    file_ids : vector<u256>,
+    file_ids : vector<String>,
+    vault_id : String
 }
 
 //=================events ====================
 public struct ProfileCreated has copy,drop{
     profile_address : address,
+    vault_id : String,
     sender : address
 }
 
-public struct FileBlobAddResult has copy,drop{
-    fbo_ids : vector<address>,
-    count : u64,
-    sender : address
+public struct FileData has copy,drop,store{
+    vault_id : String,
+    file_id : String,
+    owner : address,
+    mime_type : u8,
+    size : u32,
 }
+
+
+public struct FileAdded has copy,drop{
+    file_data : FileData,
+    cost : u64,
+}
+
+// public struct FileDataObject has key,store{
+//     id : UID,
+//     file_data : FileData
+// }
 
 
 // public struct FileMismatch has copy,drop{
@@ -105,9 +101,7 @@ public struct StroageCreated has copy ,drop{
 
 const ERR_PROFILE_CREATED :u64 = 3;
 //const ERR_PROFILE_SHOULD_CONTAINS_FILE_ID : u64 = 4;  
-const ERROR_ADD_BLOB_ARG_PARAM_INVALID : u64 = 5; 
 const ERROR_ADD_FILE_SENDER_SHOULD_BE_MANAGER : u64 = 6;
-const ERROR_ADD_BLOB_SENDER_SHOULD_BE_MANAGER : u64 = 7; 
 const ERROR_WITDRAW_SENDER_SHOULD_BE_MANAGER : u64 = 8; 
 //===========================================functions ===========================================
 
@@ -127,8 +121,6 @@ fun create_storage(ctx : &mut TxContext){
             price_wal_to_sui_1000 : PRICE_WAL_TO_SUI_1000
         },
         balance : balance::zero(),
-        //file_id => address of FileBlob
-        file_blob_map : table::new<u256,address>(ctx),
         //owner => profile
         profile_map : table::new<address,Profile>(ctx),
     };
@@ -170,18 +162,9 @@ public fun recharge(storage : &mut Storage ,owner : address, coin : Coin<SUI>) :
 }
 
 
-public fun get_file_blobs(storage : &Storage,owner : address) : vector<address>{
+public fun get_file_blobs(storage : &Storage,owner : address) : vector<String>{
     let profile = storage.profile_map.borrow(owner);
-    let len = profile.file_ids.length();
-    let mut fb_ids :vector<address> = vector::empty();
-    len.do!(|index| {
-        let file_id = profile.file_ids[index];
-        if(storage.file_blob_map.contains(file_id)){
-            let blob_addr = storage.file_blob_map.borrow(file_id);
-            fb_ids.push_back(*blob_addr);
-        }//end if
-    } );
-    fb_ids
+    return profile.file_ids
 }
 
 entry fun try_get_profile(storage:&Storage,sender : address) : Option<address>{
@@ -194,19 +177,24 @@ entry fun try_get_profile(storage:&Storage,sender : address) : Option<address>{
 }
 
 
-entry fun create_profile(storage : &mut Storage,coin : Coin<SUI>,ctx :&mut TxContext){
+entry fun create_profile(storage : &mut Storage,
+                        coin : Coin<SUI>,
+                        vault_id : String,
+                        ctx :&mut TxContext){
     let sender = ctx.sender();
     assert!(!storage.profile_map.contains(sender),ERR_PROFILE_CREATED);
     let profile = Profile{
         id: object::new(ctx),
+        vault_id,
         balance : coin.into_balance(),
         owner : sender,
-        file_ids : vector::empty<u256>(),
+        file_ids : vector::empty<String>(),
     };
     let profile_addr = profile.id.to_address();
     storage.profile_map.add(sender,profile);
 
     emit(ProfileCreated{
+        vault_id,
         profile_address : profile_addr,
         sender : ctx.sender()
     });
@@ -215,82 +203,40 @@ entry fun create_profile(storage : &mut Storage,coin : Coin<SUI>,ctx :&mut TxCon
 
 entry fun add_file(storage : &mut Storage,
                     owner : address,
-                    file_id :u256,
+                    file_id :String,
+                    mime_type : u8,
                     size : u32,
-                    ctx : & TxContext){
+                    ctx : &  TxContext){
     assert!(storage.manager == ctx.sender(),ERROR_ADD_FILE_SENDER_SHOULD_BE_MANAGER);
     let  profile : &mut Profile = storage.profile_map.borrow_mut(owner);
-    if(profile.file_ids.contains(&file_id)){
-        emit(FileAdded{
-            file_hash : file_id,
-            owner ,
-            size ,
-            is_new : false,
-            cost : 0,
-        });
-        return
-    };
+
     profile.file_ids.push_back(file_id);
     let fee = calcuate_fee(&storage.feeConfig,size as u64 );
     storage.balance.join(profile.balance.split(fee));
+
+    // let  fdo = FileDataObject{
+    //     id : object::new(ctx),
+    //     file_data : FileData{
+    //         owner,
+    //         mime_type,
+    //         size,
+    //         file_id,
+    //         vault_id : profile.vault_id
+    //     }
+    // };
+    // transfer::transfer(fdo, storage.id.to_address());
+
     emit(FileAdded{
-        file_hash : file_id,
-        owner ,
-        size ,
-        is_new : true,
+        file_data  :   FileData{
+            owner,
+            mime_type,
+            size,
+            file_id,
+            vault_id : profile.vault_id
+        },   
         cost : fee,
     });
-}
-
-entry fun add_file_blob(
-            storage : &mut Storage,
-            blob_id: u256,
-            file_ids : vector<u256>,
-            mime_types : vector<u8>,
-            starts : vector<u32>,
-            ends : vector<u32>,
-            ctx : &mut TxContext)
-{
-    assert!(storage.manager == ctx.sender(),ERROR_ADD_BLOB_SENDER_SHOULD_BE_MANAGER);
-    let count = file_ids.length();
-    
-    assert!(count == mime_types.length() 
-            && starts.length() == ends.length() 
-            && starts.length() == count ,ERROR_ADD_BLOB_ARG_PARAM_INVALID);
-    let mut fbo_ids = vector::empty<address>();  
-    
-    count.do!(|i|{
-
-        let file_id = file_ids[i];
-        if(storage.file_blob_map.contains(file_id)){
-            return
-        };
-        
-        let fbo_id = object::new(ctx);
-        let fbo_address = fbo_id.to_address();
-        
-        let blob_info = FileBlobObject{
-            id : fbo_id,
-            file_blob : FileBlob{
-                file_id ,
-                blob_id,
-                start :  starts[i],
-                end : ends[i],
-                mime_type : mime_types[i]
-            }
-        };
-        fbo_ids.push_back(fbo_address);
-        //take fee from Profile => Storage
-
-        storage.file_blob_map.add(file_id,fbo_address);
-        transfer::transfer(blob_info, storage.id.to_address())
-    });
-
-    emit(FileBlobAddResult{
-                fbo_ids,
-                count : fbo_ids.length(),
-                sender : ctx.sender()
-    });
-
     
 }
+
+

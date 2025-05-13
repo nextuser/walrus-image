@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTarFile, getUploadFile } from '@/lib/utils/dirs';
-import {getFs} from '@/lib/utils/globalData';
 import { Readable } from 'stream';
+import fs from 'fs'
 import { getContentTypeByExtType, getMimeTypeByContentType } from '@/lib/utils/content';
 import { getExt } from '@/lib/utils';
 type Context = {
@@ -20,7 +20,6 @@ export async function GET(request: NextRequest, context : Context ) {
 
    
     try {
-        const fs = getFs()
         const stream = fs.createReadStream(getUploadFile(filepath));
         //console.log("create stream file and range", tarPath,range);
         const readable : ReadableStream = Readable.toWeb(stream) as ReadableStream;

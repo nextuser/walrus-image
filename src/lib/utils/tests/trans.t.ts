@@ -4,12 +4,12 @@ import { Keypair,  } from "@mysten/sui/cryptography";
 import config from "@/config/config.json";
 import { MoveStruct, SuiClient } from "@mysten/sui/client";
 import { getServerSideSuiClient } from "./suiClient";
-import { FileBlobInfo } from "../types";
 import { getLocalSigner } from "./local_key";
-import { ProfileCreated ,DynamicField,Profile,Address,Struct,FileBlobAddResult,FileBlob} from "../suiTypes";
-import {  getFileBlobsFor,calcuate_fee,getProfile,addFile,addFileBlob,getStorage} from "../suiUtil";
+import { ProfileCreated ,DynamicField,Profile,Address,Struct,FileBlobAddResult} from "../suiTypes";
+import {  calcuate_fee,getProfile,addFile,getStorage} from "../suiUtil";
 import { suiClient } from "@/contracts";
-
+import fs from "fs";
+import { getContentTypeByExtType,getMimeTypeByContentType } from "../content";
 const sc = getServerSideSuiClient();
 const manager = getSigner();
 const client = getLocalSigner();
@@ -39,14 +39,18 @@ const client_addr = client.getPublicKey().toSuiAddress();
 /**
  * 查找当前用户的profile
  *  * 1. 获取当前用户的profile
- * entry fun try_get_profile(storage:&Storage,sender : address) : Option<address>
  */
 /**
  * 创建profile,client端 user执行
-entry fun create_profile(storage : &mut Storage,coin : Coin<SUI>,ctx :&mut TxContext){
+create_profile(storage : &mut Storage,
+                        coin : Coin<SUI>,
+                        vault_id : String,
 */
-async function createProfile(suiClient : SuiClient,amount : bigint,keypair :Keypair) : Promise<string |undefined>{
-    let tx = getCreateProfileTx(amount);
+async function createProfile(suiClient : SuiClient,
+                            amount : bigint,
+                            vault_id:string,
+                            keypair :Keypair) : Promise<string |undefined>{
+    let tx = getCreateProfileTx(amount,vault_id);
     if(tx == null){
         return ;
     }
@@ -108,46 +112,78 @@ function queryRecentImages(){
 
 }
 
-function getTestFileBlobInfo(blobId : string, hash : string){
-    let fb :FileBlobInfo= {
-        hash ,
-        status :{
-            on_walrus : true,
-            walrus_info : {
-                blobId 
-            }
-        },
-        contentType : 2,
-        range : {
-            start : 512,
-            end : 49152
-        }
-    }
-    return fb;
-}
+// function getTestFileBlobInfo(blobId : string, hash : string){
+//     let fb :FileBlobInfo= {
+//         hash ,
+//         status :{
+//             on_walrus : true,
+//             walrus_info : {
+//                 blobId 
+//             }
+//         },
+//         contentType : 2,
+//         range : {
+//             start : 512,
+//             end : 49152
+//         }
+//     }
+//     return fb;
+// }
+
+import {getServerTusky} from '@/lib/tusky/tusky_server'
+import { queryFileDataEvents } from "../suiUtil";
 async function test_all(){
+    const tusky = getServerTusky();
     // let storage = await getStorage(suiClient);
     // if(storage == null) return;
+    const  parentId = (await getStorage(sc))?.profile_map.id.id.bytes;
+    if(!parentId){
+        return;
+    }
     //role client 
-    let profile = await getProfileId(sc,client_addr);
+    let profile = await getProfile(sc,parentId,client_addr);
+    let vault_id 
     
     if(!profile) {
+        vault_id = (await tusky.vault.create(client_addr,{encrypted:false})).id
+        if(!vault_id ){
+            console.error('tusky crate vault error , owner:',client_addr);
+            return ;
+        }
          //role client 
-        profile = await createProfile(sc ,1000_000_000n,client);
+        await createProfile(sc ,1000_000_000n,vault_id,client);
+    } else {
+        vault_id = profile.vault_id;
     }
     
-    if(!profile) return;
 
+    const path =  "/mnt/d/files/zhang4.jpg";
+    const buffer = fs.readFileSync(path)
 
+    const name = path.split('/').pop();
+    const ext = path.split(".").pop();
+    const contentType = getContentTypeByExtType(ext)
+    const file_id = await tusky.file.upload(vault_id,buffer,{mimeType: 'image/jpg' })
     let hash =  'abcdefccc015';
-    const blobId = 'tuGCqX_5qU-lhyts50TMagm9ZuHkmUVgLEhJHWBf0FE'
-    const blob = getTestFileBlobInfo(blobId,hash);
-    //role manager
-    await addFile(sc,manager,client_addr,hash, blob.range.end - blob.range.start );
-    //role manager
-    await addFileBlob( sc,blobId,[blob],manager);
 
-    getFileBlobsFor(sc,client_addr);
+    const signer = getSigner();
+    await addFile(sc,signer,client_addr,file_id,contentType,buffer.length)
+
+
+    queryFileDataEvents(sc).then((e)=>{
+        for(let o of e.fileDatas){
+            console.log('event :',o );
+        }
+    })
+    
+//     const blobId = 'tuGCqX_5qU-lhyts50TMagm9ZuHkmUVgLEhJHWBf0FE'
+//     const blob = getTestFileBlobInfo(blobId,hash);
+//     //role manager
+//     await addFile(sc,manager,client_addr,file_id,contentType, blob.range.end - blob.range.start );
+//     //role manager
+//    // await addFileBlob( sc,blobId,[blob],manager);
+
+//     getFileBlobsFor(sc,client_addr);
 
 }
 
@@ -203,6 +239,5 @@ function testQueryFee()
 
 //testQueryFee();
 
-import { initFileBlobs } from "@/lib/utils/db";
-
-initFileBlobs(sc);
+test_all();
+//initFileBlobs(sc);

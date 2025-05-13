@@ -1,5 +1,4 @@
 import axios from 'axios';
-import {log} from '@/lib/utils/logger' 
 import { WalrusInfo} from '@/lib/utils/types'
 export interface UploadBlobConfig {
     initialEpochs?: string;
@@ -30,8 +29,8 @@ http://waltest.chainflow.io:9001
 
 export const DEFAULT_CONFIG: Required<UploadBlobConfig> = {
     initialEpochs: process.env.NEXT_PUBLIC_INITIAL_EPOCHS || '1',
-    initialPublisherUrl: process.env.NEXT_PUBLIC_PUBLISHER_URL || 'https://publisher.walrus-testnet.walrus.space',
-    initialAggregatorUrl: process.env.NEXT_PUBLIC_AGGREGATOR_URL || 'https://aggregator.walrus-testnet.walrus.space',
+    initialPublisherUrl: process.env.NEXT_PUBLIC_PUBLISHER_URL || 'https://publisher.walrus-mainnet.walrus.space',
+    initialAggregatorUrl: process.env.NEXT_PUBLIC_AGGREGATOR_URL || 'https://aggregator.walrus-mainnet.walrus.space',
     //initialPublisherUrl: process.env.NEXT_PUBLIC_PUBLISHER_URL || 'http://walrus-publisher-testnet.cetus.zone:9001',
     //initialAggregatorUrl: process.env.NEXT_PUBLIC_AGGREGATOR_URL || 'https://walrus-aggregator-testnet.cetus.zone',
     
@@ -46,14 +45,14 @@ export async function uploadBlob(buffer: Buffer ) : Promise<WalrusInfo>{
         const publisherUrl = DEFAULT_CONFIG.initialPublisherUrl;
 
         const uploadUrl = `${publisherUrl}/v1/blobs?epochs=${MAX_EPOCHS}`;
-        log("upload url:",uploadUrl);
+        console.log("upload url:",uploadUrl);
         const response = await fetch(uploadUrl, {
             method: 'PUT',
             body: buffer,
         });
 
         if (!response.ok) {
-            log("storeBlob: fail to upload");
+            console.log("storeBlob: fail to upload");
             response.text().then((value)=>{
                 console.log("storeBlob error:",value);
             });
@@ -61,7 +60,7 @@ export async function uploadBlob(buffer: Buffer ) : Promise<WalrusInfo>{
         }
 
         const info = await response.json();
-        log("upload info : ",info);
+        console.log("upload info : ",info);
         let blobInfo: WalrusInfo;
 
         if ('alreadyCertified' in info) {

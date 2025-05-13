@@ -57,4 +57,11 @@ async function test_file_info_objects(){
 
 //test_profile();
 
-test_profile_null();
+import { queryFileDataEvents } from "../suiUtil";
+function test_query(){
+    const events = queryFileDataEvents(suiClient);
+    events.then((value) => console.log(value.fileDatas.length))
+}
+
+test_query();
+//test_profile_null();

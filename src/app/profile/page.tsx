@@ -15,6 +15,7 @@ import {getCreateProfileTx} from '@/lib/utils/suiUtil';
 import {getWithdrawTx} from '@/lib/utils/suiUtil'
 import config from '@/config/config.json'
 import { RechargePanel } from '@/components/RechargePanel';
+import { getServerTusky } from '@/lib/tusky/tusky_server';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import {
@@ -109,14 +110,20 @@ export default function ProfilePage(props : PageProps ) {
               console.log("createProfile after waittransaction object changes:",rsp.objectChanges);
               for( let o  of rsp.objectChanges){
                  if(o.type == 'created' && o.objectType ==`${config.pkg}::file_blob::Profile`){
+                    console.log('created profile:',  o.objectId);
                     return o.objectId;
                  }
               }
               //profile balance changed
               
-              useStorage()?.refresh().then(()=>{
+              storageIntf?.refresh().then(()=>{
                 queryProfile();
               });
+            }
+            if(rsp.events){
+                for(let e of rsp.events){
+                    console.log('events: type,content',e.type, e.parsedJson as unknown)
+                }
             }
             
             console.log('----------create profile onSuccess ,not find ',result);
@@ -136,7 +143,34 @@ export default function ProfilePage(props : PageProps ) {
     }
     const {mutate : signAndExecuteTransaction} = useSignAndExecuteTransaction();
     const createProfile = async function (){
-        const tx = getCreateProfileTx(100_000_000n);
+        console.log('begin createProfile');
+        if(!acc) {
+            console.log('fail to createProfile ,not connected');
+            return;
+        }
+        const owner = encodeURIComponent(acc.address);
+        let url = `/api/create_vault?owner=${owner}`;
+        const rsp = await fetch(url,
+        {
+            method: 'GET',
+        })
+        let vault_id :string = '';
+        if(rsp.ok){
+            let ret = (await rsp.json());
+            vault_id = ret.vault_id
+            if(typeof(vault_id) != 'string'){
+                console.log(`call ${url} failed,ret=`,ret  )
+                //return <h2>vault create error, return type of vault_id is {typeof(vault_id)}</h2>;
+            } else if(!vault_id){
+                console.error('vault id error:',vault_id);
+            } 
+            
+        } else{
+            return <h2>vault create resp error : {rsp.statusText}</h2>;
+        }
+        console.log('vault_id ', vault_id);
+        
+        const tx = await getCreateProfileTx(100_000_000n,vault_id);
         if(!tx) return;
         const ret = await signAndExecuteTransaction({ transaction:tx},create_profile_callback);
         console.log("createProfile ret=",ret);
@@ -165,12 +199,15 @@ export default function ProfilePage(props : PageProps ) {
         <Button onClick={withdrawStorage}   
          className='bg-blue-300 hover:bg-blue-400 text-gray-800 font-bold py-1 px-2 rounded-2xl mx-2 max-w-60[px]'
         >Withdraw</Button></div>}
-        { profile &&      <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label>} <br/>
+        { profile &&  <div>     <label>Profile Balance : {Number(profile_balance)/1e9} SUI</label>  <br/>
+                                <label>Vault        id : {profile.vault_id}</label>
+        </div>}
+
         {wallet_balance &&<label>Wallet  Balance: {wallet_balance/1e9} SUI</label> }<br/>
+        
         <label>Image Count : {imageCount}</label>
         { (!(wallet_balance === undefined ) && profile) && 
         
-
         <div className="justify-start mx-auto mt-10">
             <Collapsible  defaultOpen={isOpen || recharge == 'open'} onOpenChange={(open) => setIsOpen(open)}>
                 <CollapsibleTrigger className="w-400[px] bg-gray-100 p-3 flex justify-between items-center text-left">

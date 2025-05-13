@@ -1,9 +1,7 @@
-import { getBlobTarUrl, getHash } from '@/lib/utils';
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { headers } from "next/headers";
 import React from 'react';
-import { getFileBlob } from '@/lib/utils/globalData';
 
 const ErrorPage: NextPage<{ statusCode?: number }> = async ({ statusCode }) => {
     const router = useRouter();
@@ -11,24 +9,24 @@ const ErrorPage: NextPage<{ statusCode?: number }> = async ({ statusCode }) => {
    const host = headersList.get("host")!; // "www.s.com:8080"
    const protocol = headersList.get("protocol") || "http";
    console.log("protocol host:" ,protocol,host);
-    React.useEffect(() => {
-        if (statusCode === 404) {
-            const path = router.asPath;
-            const key = '/uploads/'
-            if (path.startsWith(key)) {
-                let fileName = path.substring(path.indexOf(key) + key.length)
-                let hash = getHash(fileName);
-                let fbi = getFileBlob(hash);
-                if(fbi == undefined){
-                    console.log('not found fbi for ',fileName, ',hash', hash);
-                    return;
-                }
-                let url = getBlobTarUrl(host,protocol,fbi);
-                console.log(`uploads/${fileName} not found, redirect ${url}`);
-                router.replace(url);
-            }
-        }
-    }, [statusCode, router]);
+    // React.useEffect(() => {
+    //     if (statusCode === 404) {
+    //         const path = router.asPath;
+    //         const key = '/uploads/'
+    //         if (path.startsWith(key)) {
+    //             let fileName = path.substring(path.indexOf(key) + key.length)
+    //             let hash = getHash(fileName);
+    //             let fbi = getFileBlob(hash);
+    //             if(fbi == undefined){
+    //                 console.log('not found fbi for ',fileName, ',hash', hash);
+    //                 return;
+    //             }
+    //             let url = getBlobTarUrl(host,protocol,fbi);
+    //             console.log(`uploads/${fileName} not found, redirect ${url}`);
+    //             router.replace(url);
+    //         }
+    //     }
+    // }, [statusCode, router]);
 
     return (
         <div>

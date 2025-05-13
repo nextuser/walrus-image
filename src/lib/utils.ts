@@ -3,8 +3,7 @@ import { request } from "http";
 import * as crypto from 'crypto';
 import { twMerge } from "tailwind-merge"
 import path from 'path'
-import { FileBlob } from "./utils/suiParser";
-import {FileBlobInfo,FileRange} from '@/lib/utils/types'
+import {FileRange} from '@/lib/utils/types'
 import { getExtTypeByContentType } from "./utils/content";
 import { TAR_DIR } from "./utils/dirs";
 
@@ -21,14 +20,13 @@ export function generateHash(buffer: Buffer): string {
     return hash.digest('hex');
 }
 
-export function getImageUrl(request : Request, fileName : string,ext?:string) : string{
+export function getImageUrl(request : Request, fileName : string) : string{
   let site_url = getSiteUrl(request);
-  return getImageSiteUrl(site_url,fileName,ext);
+  return getImageSiteUrl(site_url,fileName);
 }
 
-export function getImageSiteUrl(siteUrl:string, fileName:string,ext?:string){
-  const name = ext ? `${fileName}.${ext}` : fileName 
-  const fileUrl = `${siteUrl}/image/${name}`;
+export function getImageSiteUrl(siteUrl:string, fileName:string){
+  const fileUrl = `${siteUrl}/image/${fileName}`;
   return fileUrl;
 }
 
@@ -48,30 +46,17 @@ function getTarUrl(protocol:string,host:string,tarfile : string,contentType : nu
 
   return `${protocol}://${host}/tar/${tarfile}/?start=${range.start}&end=${range.end}&contentType=${contentType}`;
 }
-export function getBlobTarUrl(protocol:string,host:string,fb: FileBlobInfo):string{
-    let index = protocol.indexOf(":")
-    if(index != -1 ){
-      protocol = protocol.substring(0,index)
-    }
-    if(!fb.status.on_walrus) {
-       return getTarUrl( protocol,host,fb.status.tarfile,fb.contentType,fb.range)
-    }
-    console.log("getBlobTarUrl(protocol=",protocol,"host=",host);
-    
-    const blobId = encodeURIComponent(fb.status.walrus_info.blobId);
-    return  `${protocol}://${host}/blobs?blobId=${blobId}&start=${fb.range.start}&end=${fb.range.end}&contentType=${fb.contentType}`
-}
 
 
-export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo):string{
+// export function getBlobOrTarUrl(request : Request,blobInfo: FileBlobInfo):string{
   
-  const protocol = request.headers.get('x-forwarded-proto') || 'http';
-  const host = request.headers.get('host') || '';
-  if(!blobInfo){
-    return `${protocol}://${host}/tar/not_found`
-  }
-  return  getBlobTarUrl(protocol,host,blobInfo)
-}
+//   const protocol = request.headers.get('x-forwarded-proto') || 'http';
+//   const host = request.headers.get('host') || '';
+//   if(!blobInfo){
+//     return `${protocol}://${host}/tar/not_found`
+//   }
+//   return  getBlobTarUrl(protocol,host,blobInfo)
+// }
 
 export function getTarPath(tarfile : string){
   return path.join(TAR_DIR, tarfile);
@@ -90,3 +75,5 @@ export function getExt(fileName : string){
   let index = fileName.lastIndexOf('.')
   return index != -1 ? fileName.substring(index + 1) : 'bin'
 }
+
+

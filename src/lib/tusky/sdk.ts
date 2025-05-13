@@ -1,5 +1,5 @@
 import { Tusky } from "@tusky-io/ts-sdk";
-import { getTuskeyApiKey } from "./vault";
+import { getTuskeyApiKey } from "./tusky_server";
 // You can generate fresh api key here: https://app.tusky.io/account/api-keys
 
 const tusky = new Tusky({ apiKey:  getTuskeyApiKey()});

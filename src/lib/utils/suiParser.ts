@@ -4,6 +4,7 @@ import { base64UrlSafeEncode } from "./convert";
 import { BcsReader,BcsType } from "@mysten/bcs";
 import { ProfileCreated, } from "./suiTypes";
 import { suiClient } from "@/contracts";
+import { GSSP_COMPONENT_MEMBER_ERROR } from "next/dist/lib/constants";
 
 export const Vector_Address = bcs.vector(bcs.Address);
 
@@ -51,13 +52,15 @@ public struct FileBlob has store,copy,drop{
 }
  */
 
-export const FileBlob = bcs.struct('FileBlob',{
-    file_id : bcs.u256(),
-    blob_id : bcs.u256(),
-    start : bcs.u32(),
-    end : bcs.u32(),
-    mime_type : bcs.u8(),
-})
+// export const FileBlob = bcs.struct('FileBlob',{
+//     file_id : bcs.u256(),
+//     blob_id : bcs.u256(),
+//     start : bcs.u32(),
+//     end : bcs.u32(),
+//     mime_type : bcs.u8(),
+// })
+
+
 
 /** 
 public struct  FileBlobObject has key{
@@ -65,10 +68,10 @@ public struct  FileBlobObject has key{
     file_blob : FileBlob
 } */
 
-export const FileBlobObject = bcs.struct('FileBlobObject',{
-    id: UID,
-    file_blob : FileBlob
-})
+// export const FileBlobObject = bcs.struct('FileBlobObject',{
+//     id: UID,
+//     file_blob : FileBlob
+// })
 
 
 
@@ -110,13 +113,24 @@ export function Balance<K>(v: K) {
     file_ids : vector<u256>,
 }
  */
-export const Profile = bcs.struct('Profile',
-{
+// export const Profile = bcs.struct('Profile',
+// {
+//     id : UID,
+//     owner : Address,
+//     balance : Balance(SUI),
+//     file_ids : bcs.vector(bcs.u256())
+// });
+
+
+
+export const Profile = bcs.struct('Profile',{
     id : UID,
     owner : Address,
     balance : Balance(SUI),
-    file_ids : bcs.vector(bcs.u256())
+    file_ids : bcs.vector(bcs.String),
+    vault_id : bcs.String
 });
+
 
 /**
  * public struct FeeConfig has store,drop{
@@ -157,13 +171,31 @@ export const  Storage = bcs.struct('Storgage',{
     //owner => profile address
     profile_map : Table(Address,Profile),
     //file hash => FieleBlobObject id
-    file_blob_map : Table(bcs.u256(),Address)
 });
 
 
 export type StorageType = ReturnType<typeof Storage.parse>;
 export type FeeConfigType = ReturnType<typeof FeeConfig.parse>;
-export type FileBlobType = ReturnType<typeof FileBlob.parse>;
-export type FileBlobObjectType = ReturnType<typeof FileBlobObject.parse>;
+// export type FileBlobType = ReturnType<typeof FileBlob.parse>;
+// export type FileBlobObjectType = ReturnType<typeof FileBlobObject.parse>;
 
 
+
+
+export const   FileData = bcs.struct('FileData',{
+    vault_id : bcs.string(),
+    file_id : bcs.string(),
+    owner : Address,
+    mime_type : bcs.u8(),
+    size : bcs.u32()
+});
+
+
+export const    FileAdded  = bcs.struct('FileAdded',{
+    file_data : FileData,
+    cost : bcs.u64()
+});
+
+
+export type FileDataType = ReturnType<typeof FileData.parse>
+export type FileAddedType = ReturnType<typeof FileAdded.parse>;

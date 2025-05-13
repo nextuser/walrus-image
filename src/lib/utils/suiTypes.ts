@@ -11,7 +11,8 @@ export type UID = {
 }
 export type Profile = {
         balance: string,
-        file_ids: Address[],
+        file_ids: string[],
+        vault_id:string
         id: UID,
         owner: Address,
 }
@@ -34,13 +35,13 @@ export type ProfileCreated = {
     sender : Address,
 };
 
-export type FileBlob ={
-    file_id : string,
-    blob_id : string,
-    start : number,
-    end : number,
-    mime_type : number,
-}
+// export type FileBlob ={
+//     file_id : string,
+//     blob_id : string,
+//     start : number,
+//     end : number,
+//     mime_type : number,
+// }
 
 export type FileBlobAddResult = {
     fbo_ids : string[],

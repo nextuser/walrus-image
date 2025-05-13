@@ -87,13 +87,7 @@ export default function UploadPage() {
         }
       }  
     const {mutate : signAndExecuteTransaction} = useSignAndExecuteTransaction();
-    const createProfile = async function (){
-        const tx = getCreateProfileTx(100_000_000n);
-        if(!tx) return;
-        const ret = await signAndExecuteTransaction({ transaction:tx},create_profile_callback);
-        console.log("createProfile ret=",ret);
-        return await queryProfile();
-    }
+
     if(!wallet || !wallet.isConnected || !acc){
         return (<div><h2>Connect Wallet first</h2></div>)
     }
@@ -105,8 +99,14 @@ export default function UploadPage() {
         return <div><Link href="/profile" className="text-blue-900 underline hover:no-underline visited:text-blue-300">Create Profile first</Link></div>
     }
     return (
-    <div>{(profile === null) && <Button onClick={createProfile}>create profile</Button>}
-        { profile &&      <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label>} <br/>
+    <div>{(profile === null) && 
+            <Link href='/profile' className="text-blue-900 underline hover:no-underline visited:text-blue-300">
+                create profile first
+            </Link>}
+        { profile && <div>     <label>Profile Balance: {Number(profile_balance)/1e9} SUI</label><br/>
+                               <label>Vault        Id: {profile.vault_id}</label>
+                    </div>
+        } 
         {wallet_balance &&<label>Wallet  Balance: {wallet_balance/1e9} SUI</label> }
         <ImageFileUpload 
             fileUrl={imageUrl} setFileUrl = {afterUploaded}  disabled={ !profile  }

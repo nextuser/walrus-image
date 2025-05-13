@@ -742,3 +742,97 @@ export function getExtTypeByContentType(contentType: ContentType): string  {
 Content-Type: application/octet-stream
 Content-Disposition: attachment; filename="unknown.bin"
  */
+
+
+/**
+ * MIME 类型到文件扩展名的映射表
+ */
+const mimeTypeToExtensionMap: Record<string, string> = {
+    // 图像类型
+'image/jpeg' : 'jpg',
+'image/png' : 'png',
+'image/gif' : 'gif',
+'image/bmp' : 'bmp',
+'image/webp' : 'webp',
+'image/svg+xml' : 'svg',
+'image/tiff' : 'tiff',
+'image/x-icon' : 'ico',
+'video/mp4' : 'mp4',
+'video/mpeg' : 'mpeg',
+'video/webm' : 'webm',
+'video/quicktime' : 'mov',
+'video/x-ms-wmv' : 'wmv',
+'video/x-flv' : 'flv',
+'audio/mpeg' : 'mp3',
+'audio/wav' : 'wav',
+'audio/wave' : 'wav',
+'audio/ogg' : 'ogg',
+'audio/flac' : 'flac',
+'audio/x-m4a' : 'm4a',
+'audio/webm' : 'webm',
+'application/pdf' : 'pdf',
+'application/msword' : 'doc',
+'application/vnd.ms-excel' : 'xls',
+'application/vnd.ms-powerpoint' : 'ppt',
+'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'docx{"name":"DoubaoPlugin","parameters":{"input":"&quot;docx{&quot;name&quot;:&quot;DoubaoPlugin&quot;,&quot;parameters&quot;:{&quot;input&quot;:&quot;name&quot;}}<|FunctionExecuteEnd|><|FunctionExecuteResult|>name<|FunctionExecuteResultEnd|>docx.docx"}}<|FunctionExecuteEnd|>.docx',
+'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'xlsx',
+'application/vnd.openxmlformats-officedocument.presentationml.presentation' : 'pptx',
+'text/plain' : 'txt',
+'text/csv' : 'csv',
+'text/html' : 'html',
+'text/css' : 'css',
+'text/javascript' : 'js',
+'application/json' : 'json',
+'application/xml' : 'xml',
+'application/zip' : 'zip',
+'application/x-rar-compressed' : 'rar',
+'application/x-tar' : 'tar',
+'application/gzip' : 'gz',
+'application/x-7z-compressed' : '7z',
+'font/ttf' : 'ttf',
+'font/otf' : 'otf',
+'font/woff' : 'woff',
+'font/woff2' : 'woff2',
+'application/octet-stream' : 'bin',
+'application/x-sh' : 'sh',
+'application/x-msdownload' : 'exe',
+'application/x-java-applet' : 'class',
+  };
+  
+  /**
+   * 根据 MIME 类型获取对应的文件扩展名
+   * @param mimeType - MIME 类型字符串，如 "image/jpeg"
+   * @returns 对应的文件扩展名（不带点），如果未找到则返回 undefined
+   */
+  export function getExtensionFromMimeType(mimeType: string): string  {
+    return mimeTypeToExtensionMap[mimeType.toLowerCase()] || 'bin';
+  }
+  
+  /**
+   * 获取文件扩展名的安全版本，如果未找到匹配的扩展名，返回一个默认值
+   * @param mimeType - MIME 类型字符串
+   * @param defaultValue - 未找到匹配时的默认扩展名（不带点），默认为 "bin"
+   * @returns 对应的文件扩展名（不带点）
+   */
+  export function getExtensionFromMimeTypeSafe(mimeType: string, defaultValue: string = 'bin'): string {
+    return getExtensionFromMimeType(mimeType) || defaultValue;
+  }
+  
+  /**
+   * 根据文件扩展名获取对应的 MIME 类型（反向映射，可能存在多个扩展名对应同一个 MIME 类型，此函数返回第一个匹配）
+   * @param extension - 文件扩展名（带点或不带点均可，如 ".jpg" 或 "jpg"）
+   * @returns 对应的 MIME 类型，如果未找到则返回 undefined
+   */
+  export function getMimeTypeFromExtension(extension: string): string | undefined {
+    const cleanExt = extension.replace(/^\./, '').toLowerCase();
+    return Object.keys(mimeTypeToExtensionMap).find(
+      mimeType => mimeTypeToExtensionMap[mimeType] === cleanExt
+    );
+  }    
+
+  function testMime(){
+     for(let k in mimeTypeToExtensionMap){
+        console.log(`'${k}' : '${mimeTypeToExtensionMap[k]}',`);
+     }
+  }
+
